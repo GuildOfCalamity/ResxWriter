@@ -72,7 +72,7 @@ namespace ResxWriter
                     catch (Exception ex)
                     {
                         UpdateStatus(_genericError);
-                        MessageBox.Show($"Could not read the file.\r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        ShowMsgBoxError($"Could not read the file.\r\n{ex.Message}", "Error");
                     }
                 }
                 else
@@ -114,7 +114,7 @@ namespace ResxWriter
                 {
                     UpdateStatus(_genericError);
                     SwitchButton(btnGenerateResx, global::ResxWriter.Properties.Resources.Button02);
-                    MessageBox.Show($"Could not read the file.\r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    ShowMsgBoxError($"Could not read the file.\r\n{ex.Message}", "Error");
                 }
             }
             else
@@ -141,7 +141,7 @@ namespace ResxWriter
                 {
                     UpdateStatus("Check that you have imported some valid data.");
                     SwitchButton(btnGenerateResx, global::ResxWriter.Properties.Resources.Button02);
-                    MessageBox.Show("No valid delimited values to work with from the provided file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    ShowMsgBoxError("No valid delimited values to work with from the provided file.", "Validation Error");
                     return;
                 }
 
@@ -170,12 +170,12 @@ namespace ResxWriter
                     catch (XmlException ex) // Handle XML-related exceptions.
                     {
                         UpdateStatus(_genericError);
-                        MessageBox.Show($"Could not generate the resx file.\r\n{ex.Message}", "XML Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        ShowMsgBoxError($"Could not generate the resx file.\r\n{ex.Message}", "XML Process Error");
                     }
                     catch (Exception ex)
                     {
                         UpdateStatus(_genericError);
-                        MessageBox.Show($"Could not generate the resx file.\r\n{ex.Message}", "Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        ShowMsgBoxError($"Could not generate the resx file.\r\n{ex.Message}", "Process Error");
                     }
                 }
                 else
@@ -206,6 +206,17 @@ namespace ResxWriter
         #endregion
 
         #region [Helper Methods]
+        void ShowMsgBoxInfo(string msg, string title)
+        {
+            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Info);
+        }
+        void ShowMsgBoxError(string msg, string title)
+        {
+            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Error);
+        }
+
         /// <summary>
         /// Thread-safe method
         /// </summary>
@@ -255,7 +266,7 @@ namespace ResxWriter
             catch (Exception ex)
             {
                 UpdateStatus(_genericError);
-                MessageBox.Show($"Error reading the file.\r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowMsgBoxError($"Error reading the file.\r\n{ex.Message}", "Error");
             }
 
             return fieldDictionary;
@@ -286,17 +297,17 @@ namespace ResxWriter
             catch (XmlException ex) // Handle XML-related exceptions.
             {
                 UpdateStatus(_genericError);
-                MessageBox.Show($"Error reading the resx file.\r\n{ex.Message}", "XML Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowMsgBoxError($"Error reading the resx file.\r\n{ex.Message}", "XML Process Error");
             }
             catch (SystemException ex)
             {
                 UpdateStatus(_genericError);
-                MessageBox.Show($"Error reading the resx file.\r\n{ex.Message}", "System Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowMsgBoxError($"Error reading the resx file.\r\n{ex.Message}", "System Process Error");
             }
             catch (Exception ex)
             {
                 UpdateStatus(_genericError);
-                MessageBox.Show($"Error reading the resx file.\r\n{ex.Message}", "Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowMsgBoxError($"Error reading the resx file.\r\n{ex.Message}", "Process Error");
             }
 
             return resxValues;
