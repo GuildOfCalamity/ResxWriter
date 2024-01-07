@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Resources;
 using System.Text;
 using System.Windows.Forms;
+using System.Xml;
 
 namespace ResxWriter
 {
@@ -137,8 +139,8 @@ namespace ResxWriter
 
                 if (_userValues.Count == 0)
                 {
-                    SwitchButton(btnGenerateResx, global::ResxWriter.Properties.Resources.Button02);
                     UpdateStatus("Check that you have imported some valid data.");
+                    SwitchButton(btnGenerateResx, global::ResxWriter.Properties.Resources.Button02);
                     MessageBox.Show("No valid delimited values to work with from the provided file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
@@ -165,10 +167,15 @@ namespace ResxWriter
 
                         UpdateStatus("Resx file generated successfully.");
                     }
+                    catch (XmlException ex) // Handle XML-related exceptions.
+                    {
+                        UpdateStatus(_genericError);
+                        MessageBox.Show($"Could not generate the resx file.\r\n{ex.Message}", "XML Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
                     catch (Exception ex)
                     {
                         UpdateStatus(_genericError);
-                        MessageBox.Show($"Could not generate the .resx file.\r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show($"Could not generate the resx file.\r\n{ex.Message}", "Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                 }
                 else
@@ -252,6 +259,47 @@ namespace ResxWriter
             }
 
             return fieldDictionary;
+        }
+
+        /// <summary>
+        /// Reads a resx file and returns its contents as a <see cref="Dictionary{TKey, TValue}"/>.
+        /// </summary>
+        Dictionary<string, string> ReadResxFile(string filePath)
+        {
+            Dictionary<string, string> resxValues = new Dictionary<string, string>();
+
+            try
+            {
+                using (ResXResourceReader resxReader = new ResXResourceReader(filePath))
+                {
+                    // Iterate through the .resx file and load key-value pairs.
+                    foreach (DictionaryEntry entry in resxReader)
+                    {
+                        if (entry.Value != null)
+                        {
+                            // Add key-value pair to the dictionary.
+                            resxValues.Add(entry.Key.ToString(), entry.Value.ToString());
+                        }
+                    }
+                }
+            }
+            catch (XmlException ex) // Handle XML-related exceptions.
+            {
+                UpdateStatus(_genericError);
+                MessageBox.Show($"Error reading the resx file.\r\n{ex.Message}", "XML Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch (SystemException ex)
+            {
+                UpdateStatus(_genericError);
+                MessageBox.Show($"Error reading the resx file.\r\n{ex.Message}", "System Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus(_genericError);
+                MessageBox.Show($"Error reading the resx file.\r\n{ex.Message}", "Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            return resxValues;
         }
 
         /// <summary>
