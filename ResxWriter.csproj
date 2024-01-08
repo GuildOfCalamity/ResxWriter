@@ -63,6 +63,7 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Support\Logger.cs" />
     <EmbeddedResource Include="frmMain.resx">
       <DependentUpon>frmMain.cs</DependentUpon>
     </EmbeddedResource>
@@ -99,12 +100,19 @@
     <Content Include="Assets\Button01.png" />
     <Content Include="Assets\Button02.png" />
     <Content Include="Assets\Button03.png" />
+    <Content Include="Assets\MB_Error.png" />
+    <Content Include="Assets\MB_Info.png" />
+    <Content Include="Assets\MB_Success.png" />
+    <Content Include="Assets\MB_Warning.png" />
     <Content Include="Assets\ScreenShot.png" />
     <None Include="README.md" />
-    <Content Include="SampleData\es-US.txt">
+    <Content Include="SampleData\de-DE.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="SampleData\fr-US.txt">
+    <Content Include="SampleData\es-ES.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SampleData\fr-FR.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

@@ -5,8 +5,11 @@ using System.Drawing;
 using System.IO;
 using System.Resources;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskBand;
 
 namespace ResxWriter
 {
@@ -29,8 +32,8 @@ namespace ResxWriter
         void frmMain_Shown(object sender, EventArgs e)
         {
             UpdateStatus("Click the folder icon to select a file and then click import.");
-            textContentTextBox.Text = $"{Environment.CurrentDirectory}\\";
-            SwitchButton(btnGenerateResx, global::ResxWriter.Properties.Resources.Button02);
+            tbFilePath.Text = $"{Environment.CurrentDirectory}\\";
+            SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
 
             foreach (var delimiter in _commonDelimiters)
             {
@@ -40,6 +43,8 @@ namespace ResxWriter
 
             if (cbDelimiters.Items.Count > 0)
                 cbDelimiters.SelectedIndex = 0;
+
+            Logger.Instance.OnDebug += (msg) => { System.Diagnostics.Debug.WriteLine($"{msg}"); };
         }
 
         /// <summary>
@@ -63,63 +68,79 @@ namespace ResxWriter
                         string filePath = openFileDialog.FileName;
 
                         // Display the content in a TextBox.
-                        textContentTextBox.Text = filePath;
+                        tbFilePath.Text = filePath;
 
                         // Read the UTF-8 text file content.
                         //string fileContent = File.ReadAllText(filePath, Encoding.UTF8);
-
                     }
                     catch (Exception ex)
                     {
                         UpdateStatus(_genericError);
+                        Logger.Instance.Write($"Could not read the file: {ex.Message}", LogLevel.Error);
                         ShowMsgBoxError($"Could not read the file.\r\n{ex.Message}", "Error");
                     }
                 }
                 else
                 {
-                    SwitchButton(btnGenerateResx, global::ResxWriter.Properties.Resources.Button02);
+                    SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                     UpdateStatus("File selection was canceled.");
                 }
             }
         }
-
 
         /// <summary>
         /// Import the file contents.
         /// </summary>
         void btnImport_Click(object sender, EventArgs e)
         {
-            if (textContentTextBox.Text.Length > 0)
+            if (tbFilePath.Text.Length > 0)
             {
                 try
                 {
-                    // Read the UTF-8 text file content.
-                    //string fileContent = File.ReadAllText(filePath, Encoding.UTF8);
-
                     if (_userDelimiter.Equals("TAB"))
                         _userDelimiter = "\t";
 
-                    _userValues = ReadDelimitedFile(textContentTextBox.Text, _userDelimiter[0]);
+                    //if (!File.Exists(textContentTextBox.Text))
+                    //{
+                    //    UpdateStatus($"File does not exist, please check you path and try again.");
+                    //    return;
+                    //}
 
-                    UpdateStatus($"File data has been loaded.  {_userValues.Count} items total.");
-                    
+                    _userValues = ReadDelimitedFile(tbFilePath.Text, _userDelimiter[0]);
+
+
                     if (_userValues.Count > 0)
-                        SwitchButton(btnGenerateResx, global::ResxWriter.Properties.Resources.Button01);
+                    {
+                        UpdateStatus($"File data has been loaded.  {_userValues.Count} items total.");
+                        
+                        if (_userValues.Count > 10)
+                            tbContents.ScrollBars = ScrollBars.Vertical;
+
+                        Task.Run(() => FlashButton(btnGenerateResx));
+                    }
                     else
-                        SwitchButton(btnGenerateResx, global::ResxWriter.Properties.Resources.Button02);
+                    {
+                        UpdateStatus($"Check your input file and try again.");
+                        SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
+                    }
 
                     AddValuesToTextBox(_userValues, tbContents);
+
+                    // Test for reading resx files.
+                    //var resxValues = ReadResxFile(textContentTextBox.Text);
+                    //AddValuesToTextBox(resxValues, tbContents);
                 }
                 catch (Exception ex)
                 {
                     UpdateStatus(_genericError);
-                    SwitchButton(btnGenerateResx, global::ResxWriter.Properties.Resources.Button02);
+                    SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
+                    Logger.Instance.Write($"Could not read the file: {ex.Message}", LogLevel.Error);
                     ShowMsgBoxError($"Could not read the file.\r\n{ex.Message}", "Error");
                 }
             }
             else
             {
-                SwitchButton(btnGenerateResx, global::ResxWriter.Properties.Resources.Button02);
+                SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                 UpdateStatus("Import was canceled.");
             }
         }
@@ -135,12 +156,12 @@ namespace ResxWriter
                 saveFileDialog.Filter = "Resx files (*.resx)|*.resx";
                 saveFileDialog.FilterIndex = 1;
                 saveFileDialog.RestoreDirectory = true;
-                saveFileDialog.FileName = $"{Path.GetFileNameWithoutExtension(textContentTextBox.Text)}.resx";
+                saveFileDialog.FileName = $"{Path.GetFileNameWithoutExtension(tbFilePath.Text)}.resx";
 
                 if (_userValues.Count == 0)
                 {
                     UpdateStatus("Check that you have imported some valid data.");
-                    SwitchButton(btnGenerateResx, global::ResxWriter.Properties.Resources.Button02);
+                    SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                     ShowMsgBoxError("No valid delimited values to work with from the provided file.", "Validation Error");
                     return;
                 }
@@ -166,15 +187,19 @@ namespace ResxWriter
                         }
 
                         UpdateStatus("Resx file generated successfully.");
+                        Logger.Instance.Write($"Resx file generated successfully: \"{filePath}\" ({_userValues.Count} items).", LogLevel.Success);
+                        //ShowMsgBoxSuccess("Resx file generated successfully.", "Success");
                     }
                     catch (XmlException ex) // Handle XML-related exceptions.
                     {
                         UpdateStatus(_genericError);
+                        Logger.Instance.Write($"Could not generate the resx file: {ex.Message}", LogLevel.Error);
                         ShowMsgBoxError($"Could not generate the resx file.\r\n{ex.Message}", "XML Process Error");
                     }
                     catch (Exception ex)
                     {
                         UpdateStatus(_genericError);
+                        Logger.Instance.Write($"Could not generate the resx file: {ex.Message}", LogLevel.Error);
                         ShowMsgBoxError($"Could not generate the resx file.\r\n{ex.Message}", "Process Error");
                     }
                 }
@@ -206,35 +231,6 @@ namespace ResxWriter
         #endregion
 
         #region [Helper Methods]
-        void ShowMsgBoxInfo(string msg, string title)
-        {
-            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Info);
-        }
-        void ShowMsgBoxError(string msg, string title)
-        {
-            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Error);
-        }
-
-        /// <summary>
-        /// Thread-safe method
-        /// </summary>
-        void UpdateStatus(string message)
-        {
-            try
-            {
-                if (InvokeRequired)
-                    BeginInvoke(new Action(() => UpdateStatus(message)));
-                else
-                {
-                    statusTime.Text = $"{DateTime.Now.ToString("hh:mm:ss tt")}";
-                    statusText.Text = $"{message}";
-                }
-            }
-            catch (Exception) { }
-        }
-
         /// <summary>
         /// Reads a delimited file and returns its contents as a <see cref="Dictionary{TKey, TValue}"/>.
         /// </summary>
@@ -335,12 +331,33 @@ namespace ResxWriter
         /// <summary>
         /// Thread-safe method
         /// </summary>
+        void UpdateStatus(string message)
+        {
+            try
+            {
+                if (InvokeRequired)
+                    BeginInvoke(new Action(() => UpdateStatus(message)));
+                else
+                {
+                    statusTime.Text = $"{DateTime.Now.ToString("hh:mm:ss tt")}";
+                    statusText.Text = $"{message}";
+                }
+            }
+            catch (Exception) { }
+        }
+
+        /// <summary>
+        /// Thread-safe method
+        /// </summary>
         public void ClearTextbox()
         {
             if (InvokeRequired)
                 BeginInvoke(new Action(() => ClearTextbox()));
             else
+            {
                 tbContents.Text = string.Empty;
+                tbContents.ScrollBars = ScrollBars.None;
+            }
         }
 
         /// <summary>
@@ -366,9 +383,12 @@ namespace ResxWriter
             if (InvokeRequired)
                 BeginInvoke(new Action(() => SwitchButton(btn, img)));
             else
+            {
                 btn.Image = img;
+                //btn.Invalidate();
+                btn.Refresh();
+            }
         }
-
 
         /// <summary>
         /// Thread-safe method
@@ -410,6 +430,68 @@ namespace ResxWriter
                     this.WindowState = state;
             }
             catch (Exception) { }
+        }
+
+        /// <summary>
+        /// A simple animation for the generate button.
+        /// </summary>
+        void FlashButton(Button btn, int blinkCount = 3, int blinkSpeed = 150)
+        {
+            for (int i = 0; i < blinkCount; i++) 
+            {
+                Thread.Sleep(blinkSpeed);
+                //ToggleControl(btn, false);
+                SwitchButton(btn, ResxWriter.Properties.Resources.Button02);
+                Thread.Sleep(blinkSpeed);
+                //ToggleControl(btn, true);
+                SwitchButton(btn, ResxWriter.Properties.Resources.Button01);
+            }
+        }
+
+        void ShowMsgBoxInfo(string msg, string title)
+        {
+            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Info, true);
+        }
+        void ShowMsgBoxWarning(string msg, string title)
+        {
+            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Warning, true);
+        }
+        void ShowMsgBoxError(string msg, string title)
+        {
+            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Error, true);
+        }
+        void ShowMsgBoxSuccess(string msg, string title)
+        {
+            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Success, true);
+        }
+
+        /// <summary>
+        /// Returns the declaring type's namespace.
+        /// </summary>
+        public static string GetCurrentNamespace()
+        {
+            return System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Namespace;
+        }
+
+        /// <summary>
+        /// Returns the declaring type's assembly name.
+        /// </summary>
+        public static string GetCurrentAssemblyName()
+        {
+            //return System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Assembly.FullName;
+            return System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+        }
+
+        /// <summary>
+        /// Returns the AssemblyVersion, not the FileVersion.
+        /// </summary>
+        public static Version GetCurrentAssemblyVersion()
+        {
+            return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version();
         }
         #endregion
 

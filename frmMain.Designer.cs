@@ -31,7 +31,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             this.btnImport = new System.Windows.Forms.Button();
             this.statusText = new System.Windows.Forms.Label();
-            this.textContentTextBox = new System.Windows.Forms.TextBox();
+            this.tbFilePath = new System.Windows.Forms.TextBox();
             this.cbDelimiters = new System.Windows.Forms.ComboBox();
             this.label1 = new System.Windows.Forms.Label();
             this.cbMetadata = new System.Windows.Forms.CheckBox();
@@ -53,7 +53,7 @@
             this.btnImport.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.btnImport.Name = "btnImport";
             this.btnImport.Size = new System.Drawing.Size(141, 30);
-            this.btnImport.TabIndex = 0;
+            this.btnImport.TabIndex = 2;
             this.btnImport.Text = "Import file";
             this.btnImport.UseVisualStyleBackColor = true;
             this.btnImport.Click += new System.EventHandler(this.btnImport_Click);
@@ -70,18 +70,18 @@
             this.statusText.TabIndex = 2;
             this.statusText.Text = "...";
             // 
-            // textContentTextBox
+            // tbFilePath
             // 
-            this.textContentTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.tbFilePath.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textContentTextBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
-            this.textContentTextBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.textContentTextBox.Font = new System.Drawing.Font("Calibri", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.textContentTextBox.ForeColor = System.Drawing.Color.White;
-            this.textContentTextBox.Location = new System.Drawing.Point(15, 14);
-            this.textContentTextBox.Name = "textContentTextBox";
-            this.textContentTextBox.Size = new System.Drawing.Size(823, 26);
-            this.textContentTextBox.TabIndex = 3;
+            this.tbFilePath.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
+            this.tbFilePath.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.tbFilePath.Font = new System.Drawing.Font("Calibri", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tbFilePath.ForeColor = System.Drawing.Color.White;
+            this.tbFilePath.Location = new System.Drawing.Point(15, 14);
+            this.tbFilePath.Name = "tbFilePath";
+            this.tbFilePath.Size = new System.Drawing.Size(823, 26);
+            this.tbFilePath.TabIndex = 0;
             // 
             // cbDelimiters
             // 
@@ -93,7 +93,7 @@
             this.cbDelimiters.Location = new System.Drawing.Point(307, 55);
             this.cbDelimiters.Name = "cbDelimiters";
             this.cbDelimiters.Size = new System.Drawing.Size(67, 27);
-            this.cbDelimiters.TabIndex = 4;
+            this.cbDelimiters.TabIndex = 3;
             this.cbDelimiters.Text = "~";
             this.cbDelimiters.SelectedIndexChanged += new System.EventHandler(this.cbDelimiters_SelectedIndexChanged);
             // 
@@ -117,7 +117,7 @@
             this.cbMetadata.Location = new System.Drawing.Point(530, 56);
             this.cbMetadata.Name = "cbMetadata";
             this.cbMetadata.Size = new System.Drawing.Size(335, 23);
-            this.cbMetadata.TabIndex = 6;
+            this.cbMetadata.TabIndex = 4;
             this.cbMetadata.Text = "Add each item as metadata instead of resource";
             this.cbMetadata.UseVisualStyleBackColor = true;
             this.cbMetadata.CheckedChanged += new System.EventHandler(this.cbMetadata_CheckedChanged);
@@ -134,7 +134,7 @@
             this.btnFileSelect.Margin = new System.Windows.Forms.Padding(0);
             this.btnFileSelect.Name = "btnFileSelect";
             this.btnFileSelect.Size = new System.Drawing.Size(32, 28);
-            this.btnFileSelect.TabIndex = 7;
+            this.btnFileSelect.TabIndex = 1;
             this.btnFileSelect.Text = "1";
             this.btnFileSelect.UseVisualStyleBackColor = true;
             this.btnFileSelect.Click += new System.EventHandler(this.btnFileSelect_Click);
@@ -152,7 +152,7 @@
             this.tbContents.Multiline = true;
             this.tbContents.Name = "tbContents";
             this.tbContents.Size = new System.Drawing.Size(856, 292);
-            this.tbContents.TabIndex = 8;
+            this.tbContents.TabIndex = 5;
             this.tbContents.WordWrap = false;
             // 
             // panelLine
@@ -189,7 +189,7 @@
             this.btnGenerateResx.Name = "btnGenerateResx";
             this.btnGenerateResx.Padding = new System.Windows.Forms.Padding(0, 0, 5, 5);
             this.btnGenerateResx.Size = new System.Drawing.Size(80, 80);
-            this.btnGenerateResx.TabIndex = 12;
+            this.btnGenerateResx.TabIndex = 6;
             this.btnGenerateResx.UseVisualStyleBackColor = true;
             this.btnGenerateResx.Click += new System.EventHandler(this.btnGenerateResx_Click);
             // 
@@ -205,7 +205,7 @@
             this.btnExit.Name = "btnExit";
             this.btnExit.Padding = new System.Windows.Forms.Padding(0, 0, 5, 5);
             this.btnExit.Size = new System.Drawing.Size(123, 80);
-            this.btnExit.TabIndex = 13;
+            this.btnExit.TabIndex = 7;
             this.btnExit.UseVisualStyleBackColor = true;
             this.btnExit.Click += new System.EventHandler(this.btnExit_Click);
             // 
@@ -224,7 +224,7 @@
             this.Controls.Add(this.cbMetadata);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.cbDelimiters);
-            this.Controls.Add(this.textContentTextBox);
+            this.Controls.Add(this.tbFilePath);
             this.Controls.Add(this.statusText);
             this.Controls.Add(this.btnImport);
             this.Font = new System.Drawing.Font("Calibri", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -244,7 +244,7 @@
 
         private System.Windows.Forms.Button btnImport;
         private System.Windows.Forms.Label statusText;
-        private System.Windows.Forms.TextBox textContentTextBox;
+        private System.Windows.Forms.TextBox tbFilePath;
         private System.Windows.Forms.ComboBox cbDelimiters;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.CheckBox cbMetadata;
