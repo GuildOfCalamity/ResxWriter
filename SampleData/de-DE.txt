@@ -1,0 +1,4 @@
+﻿Greeting	Hallo, wie geht es dir.
+Prompt	Bitte legen Sie Ihre Karte ein.
+Error	Es gab ein Problem.
+Legal	Hiermit wird jeder Person, die eine Kopie dieser Software und der zugehörigen Dokumentationsdateien (die „Software“) erhält, kostenlos die Erlaubnis erteilt, die Software ohne Einschränkung zu nutzen.
