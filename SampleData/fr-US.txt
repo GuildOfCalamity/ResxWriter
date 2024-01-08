@@ -1,4 +1,0 @@
-Greeting	Bonjour.
-Prompt	Veuillez insérer votre carte.
-Error	Une erreur est survenue.
-Legal	L'autorisation est par la présente accordée, gratuitement, à toute personne obtenant une copie de ce logiciel et des fichiers de documentation associés (le «Logiciel») d'utiliser le Logiciel sans restriction.
