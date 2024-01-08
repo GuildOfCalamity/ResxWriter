@@ -1,4 +1,0 @@
-Greeting	Hola cómo estás.
-Prompt	Por favor inserte su tarjeta.
-Error	Había un problema.
-Legal	Por el presente se concede permiso, sin coste alguno, a cualquier persona que obtenga una copia de este software y los archivos de documentación asociados (el "Software") para utilizar el Software sin restricciones.
