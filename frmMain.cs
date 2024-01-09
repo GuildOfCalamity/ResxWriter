@@ -12,6 +12,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows.Forms;
 using System.Xml;
 using static System.Resources.ResXFileRef;
@@ -29,6 +30,12 @@ namespace ResxWriter
         string _userDelimiter = string.Empty;
         string _genericError = "An error was detected.";
         bool _useMeta = false;
+        bool _closing = false;
+        private Image backgroundImage;
+        private int moveX = 5; // Amount to move on X-axis
+        private int moveY = 5; // Amount to move on Y-axis
+        private System.Windows.Forms.Timer timer;
+        private Point imagePosition;
         #endregion
 
         public frmMain()
@@ -39,6 +46,8 @@ namespace ResxWriter
         #region [Event Methods]
         void frmMain_Shown(object sender, EventArgs e)
         {
+            this.DoubleBuffered = true; // Enable double buffering
+
             UpdateStatus("Click the folder icon to select a file and then click import.");
             SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
 
@@ -72,8 +81,45 @@ namespace ResxWriter
 
             SetListTheme(lvContents);
 
-            //Icon appIcon = Utils.GetFileIcon(System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".exe", true);
+            // Create and configure the timer for our background animation.
+            //backgroundImage = Image.FromFile(Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location),"App_Icon.png"));
+            backgroundImage = ResxWriter.Properties.Resources.App_Icon_png;
+            timer = new System.Windows.Forms.Timer();
+            timer.Interval = 32; // milliseconds
+            timer.Tick += TimerOnTick;
+            timer.Start();
         }
+
+        #region [Simple Background Animation]
+        void TimerOnTick(object sender, EventArgs e)
+        {
+            if (backgroundImage == null || _closing)
+                return;
+
+            // Update the image position for the bouncing effect.
+            imagePosition.X += moveX;
+            imagePosition.Y += moveY;
+
+            // Check X boundary.
+            if (imagePosition.X < 0 || imagePosition.X + backgroundImage.Width > this.ClientSize.Width)
+                moveX = -moveX;
+
+            // Check Y boundary.
+            if (imagePosition.Y < 0 || imagePosition.Y + backgroundImage.Height > this.ClientSize.Height)
+                moveY = -moveY;
+
+            // Force the form to redraw.
+            this.Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            if (backgroundImage != null && !_closing)
+                e.Graphics.DrawImage(backgroundImage, imagePosition);
+        }
+        #endregion
 
         /// <summary>
         /// Browse to the file location.
@@ -271,6 +317,8 @@ namespace ResxWriter
         {
             try
             {
+                _closing = true;
+
                 if (this.WindowState == FormWindowState.Normal)
                 {
                     SettingsManager.WindowLeft = this.Left;
@@ -625,6 +673,12 @@ namespace ResxWriter
                 SettingsManager.WindowsDPI = Utils.GetCurrentDPI(graphics);
             }
         }
+
+        /// <summary>
+        /// Self-reference for extracting the application icon.
+        /// </summary>
+        /// <returns><see cref="Icon"/></returns>
+        Icon GetApplicationIcon() => Utils.GetFileIcon(System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".exe", true);
 
         /// <summary>
         /// Uses the current OS theme for the list view (row highlight, hover, columns, etc).
