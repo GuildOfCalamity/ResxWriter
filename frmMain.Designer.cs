@@ -41,6 +41,9 @@
             this.statusTime = new System.Windows.Forms.Label();
             this.btnGenerateResx = new System.Windows.Forms.Button();
             this.btnExit = new System.Windows.Forms.Button();
+            this.lvContents = new System.Windows.Forms.ListView();
+            this.columnHeaderKey = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeaderValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.SuspendLayout();
             // 
             // btnImport
@@ -92,10 +95,11 @@
             this.cbDelimiters.FormattingEnabled = true;
             this.cbDelimiters.Location = new System.Drawing.Point(307, 55);
             this.cbDelimiters.Name = "cbDelimiters";
-            this.cbDelimiters.Size = new System.Drawing.Size(67, 27);
+            this.cbDelimiters.Size = new System.Drawing.Size(60, 27);
             this.cbDelimiters.TabIndex = 3;
             this.cbDelimiters.Text = "~";
             this.cbDelimiters.SelectedIndexChanged += new System.EventHandler(this.cbDelimiters_SelectedIndexChanged);
+            this.cbDelimiters.TextUpdate += new System.EventHandler(this.cbDelimiters_TextUpdate);
             // 
             // label1
             // 
@@ -114,7 +118,7 @@
             this.cbMetadata.AutoSize = true;
             this.cbMetadata.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cbMetadata.ForeColor = System.Drawing.Color.White;
-            this.cbMetadata.Location = new System.Drawing.Point(530, 56);
+            this.cbMetadata.Location = new System.Drawing.Point(537, 56);
             this.cbMetadata.Name = "cbMetadata";
             this.cbMetadata.Size = new System.Drawing.Size(335, 23);
             this.cbMetadata.TabIndex = 4;
@@ -141,9 +145,7 @@
             // 
             // tbContents
             // 
-            this.tbContents.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.tbContents.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.tbContents.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(20)))));
             this.tbContents.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.tbContents.Font = new System.Drawing.Font("Consolas", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -151,7 +153,7 @@
             this.tbContents.Location = new System.Drawing.Point(15, 98);
             this.tbContents.Multiline = true;
             this.tbContents.Name = "tbContents";
-            this.tbContents.Size = new System.Drawing.Size(856, 292);
+            this.tbContents.Size = new System.Drawing.Size(856, 150);
             this.tbContents.TabIndex = 5;
             this.tbContents.WordWrap = false;
             // 
@@ -209,12 +211,45 @@
             this.btnExit.UseVisualStyleBackColor = true;
             this.btnExit.Click += new System.EventHandler(this.btnExit_Click);
             // 
+            // lvContents
+            // 
+            this.lvContents.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.lvContents.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(20)))));
+            this.lvContents.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.lvContents.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeaderKey,
+            this.columnHeaderValue});
+            this.lvContents.Font = new System.Drawing.Font("Consolas", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lvContents.ForeColor = System.Drawing.Color.White;
+            this.lvContents.FullRowSelect = true;
+            this.lvContents.HideSelection = false;
+            this.lvContents.Location = new System.Drawing.Point(15, 98);
+            this.lvContents.Name = "lvContents";
+            this.lvContents.Size = new System.Drawing.Size(856, 292);
+            this.lvContents.TabIndex = 12;
+            this.lvContents.UseCompatibleStateImageBehavior = false;
+            this.lvContents.View = System.Windows.Forms.View.Details;
+            this.lvContents.SelectedIndexChanged += new System.EventHandler(this.lvContents_SelectedIndexChanged);
+            // 
+            // columnHeaderKey
+            // 
+            this.columnHeaderKey.Text = "Key";
+            this.columnHeaderKey.Width = 150;
+            // 
+            // columnHeaderValue
+            // 
+            this.columnHeaderValue.Text = "Value";
+            this.columnHeaderValue.Width = 700;
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(20)))));
             this.ClientSize = new System.Drawing.Size(884, 536);
+            this.Controls.Add(this.lvContents);
             this.Controls.Add(this.btnExit);
             this.Controls.Add(this.btnGenerateResx);
             this.Controls.Add(this.statusTime);
@@ -234,6 +269,7 @@
             this.Name = "frmMain";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Resx Writer";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmMain_FormClosing);
             this.Shown += new System.EventHandler(this.frmMain_Shown);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -254,6 +290,9 @@
         private System.Windows.Forms.Label statusTime;
         private System.Windows.Forms.Button btnGenerateResx;
         private System.Windows.Forms.Button btnExit;
+        private System.Windows.Forms.ListView lvContents;
+        private System.Windows.Forms.ColumnHeader columnHeaderKey;
+        private System.Windows.Forms.ColumnHeader columnHeaderValue;
     }
 }
 

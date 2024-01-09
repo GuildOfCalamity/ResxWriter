@@ -1,22 +1,30 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Reflection;
 using System.Resources;
+using System.Runtime.InteropServices;
+using System.Runtime.Remoting.Contexts;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskBand;
+using static System.Resources.ResXFileRef;
 
 namespace ResxWriter
 {
+    /// <summary>
+    /// TODO: Jazz up <see cref="tbContents"/> with a <see cref="ListView"/>.
+    /// </summary>
     public partial class frmMain : Form
     {
         #region [Props]
-        readonly List<string> _commonDelimiters = new List<string> { ",", ";", "~", "TAB" };
+        readonly List<string> _commonDelimiters = new List<string> { ",", ";", "~", "|", "TAB" };
         Dictionary<string, string> _userValues = new Dictionary<string, string>();
         string _userDelimiter = string.Empty;
         string _genericError = "An error was detected.";
@@ -32,19 +40,39 @@ namespace ResxWriter
         void frmMain_Shown(object sender, EventArgs e)
         {
             UpdateStatus("Click the folder icon to select a file and then click import.");
-            tbFilePath.Text = $"{Environment.CurrentDirectory}\\";
             SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
 
+            #region [Load settings]
+            var lastPath = SettingsManager.LastPath;
+            if (!string.IsNullOrEmpty(lastPath))
+                tbFilePath.Text = lastPath;
+            else
+                tbFilePath.Text = $"{Environment.CurrentDirectory}\\";
+
+            var lastDelimiter = SettingsManager.LastDelimiter;
+            #endregion
+
+            #region [ComboBox Setup]
             foreach (var delimiter in _commonDelimiters)
             {
                 cbDelimiters.Items.Add(delimiter);
                 _userDelimiter = delimiter;
             }
-
             if (cbDelimiters.Items.Count > 0)
                 cbDelimiters.SelectedIndex = 0;
 
-            Logger.Instance.OnDebug += (msg) => { System.Diagnostics.Debug.WriteLine($"{msg}"); };
+            if (!string.IsNullOrEmpty(lastDelimiter))
+                cbDelimiters.Text = _userDelimiter = lastDelimiter;
+
+            #endregion
+
+            DetermineWindowDPI();
+
+            Logger.Instance.OnDebug += (msg) => { Debug.WriteLine($"{msg}"); };
+
+            SetListTheme(lvContents);
+
+            //Icon appIcon = Utils.GetFileIcon(System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".exe", true);
         }
 
         /// <summary>
@@ -124,7 +152,8 @@ namespace ResxWriter
                         SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                     }
 
-                    AddValuesToTextBox(_userValues, tbContents);
+                    //AddImportToTextBox(_userValues, tbContents);
+                    AddImportToListView(_userValues, lvContents);
 
                     // Test for reading resx files.
                     //var resxValues = ReadResxFile(textContentTextBox.Text);
@@ -224,13 +253,107 @@ namespace ResxWriter
                 _useMeta = cb.Checked;
         }
 
+        void cbDelimiters_TextUpdate(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(cbDelimiters.Text))
+            {
+                _userDelimiter = cbDelimiters.Text;
+                UpdateStatus($"Custom delimiter set to \"{_userDelimiter}\"");
+            }
+        }
+
         void btnExit_Click(object sender, EventArgs e)
         {
             Application.Exit();
         }
+
+        void frmMain_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            try
+            {
+                if (this.WindowState == FormWindowState.Normal)
+                {
+                    SettingsManager.WindowLeft = this.Left;
+                    SettingsManager.WindowTop = this.Top;
+                    SettingsManager.WindowHeight = this.Height;
+                    SettingsManager.WindowWidth = this.Width;
+                }
+                // Special chars do not store well in XML, so we have a logic check here for 0x09(HTAB).
+                SettingsManager.LastDelimiter = _userDelimiter.Equals("\t") ? "TAB" : _userDelimiter;
+                SettingsManager.WindowState = (int)this.WindowState;
+                SettingsManager.LastPath = tbFilePath.Text;
+                SettingsManager.Save(SettingsManager.AppSettings, SettingsManager.Location, SettingsManager.Version);
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Write($"Error while closing form: {ex.Message}", LogLevel.Error);
+            }
+        }
+
+        void lvContents_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Right-click shouldn't change the selection.
+            if (Control.MouseButtons == System.Windows.Forms.MouseButtons.Right)
+                return;
+
+            var lv = sender as ListView;
+
+            try
+            {
+                if (lv.SelectedItems.Count == 0)
+                    return;
+
+                var data = lv.SelectedItems[0].SubItems[1].Text;
+                Debug.WriteLine($"SelectedItem => {data}");
+            }
+            catch (Exception ex ) 
+            { 
+                Debug.WriteLine($"[ERROR] {ex.Message}"); 
+            }
+        }
         #endregion
 
         #region [Helper Methods]
+        /// <summary>
+        /// Add a file hit to the listview (Thread safe).
+        /// </summary>
+        /// <param name="file">File to add</param>
+        /// <param name="index">Position in GrepCollection</param>
+        void AddToListView(string key, string value, int index, ListView lv)
+        {
+            lv.InvokeIfRequired(() =>
+            {
+                // Duplicate checking.
+                //foreach (ListViewItem item in lstFileNames.Items) { }
+
+                // Create the list item.
+                var listItem = new ListViewItem(key)
+                {
+                    Name = index.ToString(), 
+                    ForeColor = index % 2 == 0 ? Color.DeepSkyBlue : Color.DodgerBlue,
+                    //ImageIndex = ListViewImageManager.GetImageIndex(file, ListViewImageList)
+                };
+                listItem.SubItems.Add(value);
+
+                // Add explorer style of file size for display but store file size in bytes for comparison
+                ListViewItem.ListViewSubItem subItem = new ListViewItem.ListViewSubItem(listItem, value)
+                {
+                    Tag = key, ForeColor = Color.SpringGreen,
+                };
+                listItem.SubItems.Add(subItem);
+                //listItem.SubItems.Add("0");
+
+                // must be last
+                listItem.SubItems.Add(index.ToString());
+
+                // Add list item to listview
+                lvContents.Items.Add(listItem);
+
+                // clear it out
+                listItem = null;
+            });
+        }
+
         /// <summary>
         /// Reads a delimited file and returns its contents as a <see cref="Dictionary{TKey, TValue}"/>.
         /// </summary>
@@ -312,7 +435,7 @@ namespace ResxWriter
         /// <summary>
         /// Adds each KeyValuePair in the <paramref name="dictionary"/> to the <paramref name="textBox"/>.
         /// </summary>
-        void AddValuesToTextBox(Dictionary<string, string> dictionary, TextBox textBox)
+        void AddImportToTextBox(Dictionary<string, string> dictionary, TextBox textBox)
         {
             if (dictionary.Count == 0)
             {
@@ -326,6 +449,17 @@ namespace ResxWriter
                 sb.AppendLine($"{kvp.Key}{_userDelimiter}{kvp.Value}");
 
             textBox.Text = sb.ToString();
+        }
+
+        void AddImportToListView(Dictionary<string, string> dictionary, ListView lv)
+        {
+            int idx = 0;
+            ClearListView();
+
+            lv.BeginUpdate();
+            foreach (var kvp in dictionary)
+                AddToListView($"{kvp.Key}", $"{kvp.Value}", ++idx, lv);
+            lv.EndUpdate();
         }
 
         /// <summary>
@@ -363,6 +497,19 @@ namespace ResxWriter
         /// <summary>
         /// Thread-safe method
         /// </summary>
+        public void ClearListView()
+        {
+            if (InvokeRequired)
+                BeginInvoke(new Action(() => ClearListView()));
+            else
+            {
+                lvContents.Items.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Thread-safe method
+        /// </summary>
         /// <param name="ctrl"><see cref="Control"/></param>
         /// <param name="state">true=enabled, false=disabled</param>
         public void ToggleControl(Control ctrl, bool state)
@@ -385,8 +532,7 @@ namespace ResxWriter
             else
             {
                 btn.Image = img;
-                //btn.Invalidate();
-                btn.Refresh();
+                btn.Refresh(); //btn.Invalidate();
             }
         }
 
@@ -395,7 +541,7 @@ namespace ResxWriter
         /// </summary>
         /// <param name="ctrl"><see cref="System.Windows.Forms.CheckBox"/></param>
         /// <param name="state">true=checked, false=unchecked</param>
-        public void ToggleCheckBox(System.Windows.Forms.CheckBox ctrl, bool state)
+        public void ToggleCheckBox(CheckBox ctrl, bool state)
         {
             if (InvokeRequired)
                 BeginInvoke(new Action(() => ToggleCheckBox(ctrl, state)));
@@ -406,7 +552,7 @@ namespace ResxWriter
         /// <summary>
         /// Thread-safe method
         /// </summary>
-        /// <param name="ctrl"><see cref="Control"/></param>
+        /// <param name="ctrl"><see cref="System.Windows.Forms.Control"/></param>
         /// <param name="data">text for control</param>
         public void UpdateControl(Control ctrl, string data)
         {
@@ -419,7 +565,7 @@ namespace ResxWriter
         /// <summary>
         /// Thread-safe method
         /// </summary>
-        /// <param name="state"><see cref="FormWindowState"/></param>
+        /// <param name="state"><see cref="System.Windows.Forms.FormWindowState"/></param>
         void UpdateWindowState(FormWindowState state)
         {
             try
@@ -470,30 +616,26 @@ namespace ResxWriter
         }
 
         /// <summary>
-        /// Returns the declaring type's namespace.
+        /// Get Windows DPI percent scale.
         /// </summary>
-        public static string GetCurrentNamespace()
+        void DetermineWindowDPI()
         {
-            return System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Namespace;
+            using (var graphics = CreateGraphics())
+            {
+                SettingsManager.WindowsDPI = Utils.GetCurrentDPI(graphics);
+            }
         }
 
         /// <summary>
-        /// Returns the declaring type's assembly name.
+        /// Uses the current OS theme for the list view (row highlight, hover, columns, etc).
         /// </summary>
-        public static string GetCurrentAssemblyName()
+        /// <param name="listView"><see cref="ListView"/></param>
+        public static void SetListTheme(ListView listView)
         {
-            //return System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Assembly.FullName;
-            return System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
-        }
-
-        /// <summary>
-        /// Returns the AssemblyVersion, not the FileVersion.
-        /// </summary>
-        public static Version GetCurrentAssemblyVersion()
-        {
-            return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version();
+            //lvContents.Font = Utils.ConvertStringToFont($"{SettingsManager.WindowFontName},11.9999,Regular");
+            Utils.SetWindowTheme(listView.Handle, "Explorer", null);
+            Utils.SendMessage(listView.Handle, Utils.LVM_SETEXTENDEDLISTVIEWSTYLE, new IntPtr(Utils.LVS_EX_DOUBLEBUFFER), new IntPtr(Utils.LVS_EX_DOUBLEBUFFER));
         }
         #endregion
-
     }
 }
