@@ -1,9 +1,12 @@
-﻿using System;
+﻿using ResxWriter.Properties;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Resources;
 using System.Runtime.InteropServices;
@@ -15,12 +18,12 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
 using System.Xml;
-using static System.Resources.ResXFileRef;
+using static System.Windows.Forms.AxHost;
 
 namespace ResxWriter
 {
     /// <summary>
-    /// TODO: Jazz up <see cref="tbContents"/> with a <see cref="ListView"/>.
+    /// TODO: Superclass a <see cref="ListView"/> for transparency.
     /// </summary>
     public partial class frmMain : Form
     {
@@ -31,11 +34,16 @@ namespace ResxWriter
         string _genericError = "An error was detected.";
         bool _useMeta = false;
         bool _closing = false;
-        private Image backgroundImage;
-        private int moveX = 5; // Amount to move on X-axis
-        private int moveY = 5; // Amount to move on Y-axis
-        private System.Windows.Forms.Timer timer;
-        private Point imagePosition;
+        #endregion
+
+        #region [Animation]
+        Image _backgroundImage;
+        int _moveX = 2;
+        int _moveY = 2;
+        int _marginX = -1;
+        int _marginY = -1;
+        System.Windows.Forms.Timer _timer;
+        Point _imagePosition;
         #endregion
 
         public frmMain()
@@ -46,7 +54,8 @@ namespace ResxWriter
         #region [Event Methods]
         void frmMain_Shown(object sender, EventArgs e)
         {
-            this.DoubleBuffered = true; // Enable double buffering
+            // Enable double buffering for the main form.
+            this.DoubleBuffered = true;
 
             UpdateStatus("Click the folder icon to select a file and then click import.");
             SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
@@ -72,7 +81,6 @@ namespace ResxWriter
 
             if (!string.IsNullOrEmpty(lastDelimiter))
                 cbDelimiters.Text = _userDelimiter = lastDelimiter;
-
             #endregion
 
             DetermineWindowDPI();
@@ -81,32 +89,60 @@ namespace ResxWriter
 
             SetListTheme(lvContents);
 
+            // Restore user's desired location.
+            this.Top = SettingsManager.WindowTop;
+            this.Left = SettingsManager.WindowLeft;
+            this.Width = SettingsManager.WindowWidth;
+            this.Height = SettingsManager.WindowHeight;
+
+            //this.BackgroundImageLayout = ImageLayout.Stretch;
+            //this.BackgroundImage = Image.FromFile(Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "Background.png"));
+
             // Create and configure the timer for our background animation.
-            //backgroundImage = Image.FromFile(Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location),"App_Icon.png"));
-            backgroundImage = ResxWriter.Properties.Resources.App_Icon_png;
-            timer = new System.Windows.Forms.Timer();
-            timer.Interval = 32; // milliseconds
-            timer.Tick += TimerOnTick;
-            timer.Start();
+            _backgroundImage = ResxWriter.Properties.Resources.App_Icon_png;
+            _marginX = (int)(_backgroundImage.Width * 0.11) * -1;
+            _marginY = (int)(_backgroundImage.Height * 0.09) * -1;
+            _timer = new System.Windows.Forms.Timer();
+            _timer.Interval = 40; // milliseconds
+            _timer.Tick += TimerOnTick;
+            _timer.Start();
+
+            // Have we saved a location that is not possible?
+            CanWeFit(this, new Rectangle(30, 20, 900, 575));
+        }
+
+        /// <summary>
+        /// If we can't find a screen to fit us, reset to the primary work area.
+        /// </summary>
+        void CanWeFit(Form form, Rectangle fallback)
+        {
+            if (!Screen.AllScreens.Any(s => s.WorkingArea.IntersectsWith(form.Bounds)))
+            {
+                Debug.WriteLine($"We don't fit, defaulting {nameof(form)} bounds to {fallback}.");
+                form.Bounds = fallback;
+            }
         }
 
         #region [Simple Background Animation]
+        /// <summary>
+        /// Background floating image with bounce effect.
+        /// </summary>
         void TimerOnTick(object sender, EventArgs e)
         {
-            if (backgroundImage == null || _closing)
+            if (_backgroundImage == null || _closing)
                 return;
 
-            // Update the image position for the bouncing effect.
-            imagePosition.X += moveX;
-            imagePosition.Y += moveY;
+            // Update the image position.
+            _imagePosition.X += _moveX;
+            _imagePosition.Y += _moveY;
 
             // Check X boundary.
-            if (imagePosition.X < 0 || imagePosition.X + backgroundImage.Width > this.ClientSize.Width)
-                moveX = -moveX;
+            if (_imagePosition.X < _marginX || _imagePosition.X + _backgroundImage.Width > (this.ClientSize.Width + Math.Abs(_marginX)))
+                _moveX = -_moveX;
 
             // Check Y boundary.
-            if (imagePosition.Y < 0 || imagePosition.Y + backgroundImage.Height > this.ClientSize.Height)
-                moveY = -moveY;
+            if (_imagePosition.Y < _marginY || _imagePosition.Y + _backgroundImage.Height > (this.ClientSize.Height + Math.Abs(_marginY)))
+                _moveY = -_moveY;
 
             // Force the form to redraw.
             this.Invalidate();
@@ -116,8 +152,11 @@ namespace ResxWriter
         {
             base.OnPaint(e);
 
-            if (backgroundImage != null && !_closing)
-                e.Graphics.DrawImage(backgroundImage, imagePosition);
+            if (_backgroundImage != null && !_closing)
+            {
+                //e.Graphics.DrawImage(_backgroundImage, _imagePosition.X, _imagePosition.Y, _backgroundImage.Width, _backgroundImage.Height);
+                e.Graphics.DrawImage(_backgroundImage, _imagePosition);
+            }
         }
         #endregion
 
@@ -318,6 +357,7 @@ namespace ResxWriter
             try
             {
                 _closing = true;
+                _timer?.Stop();
 
                 if (this.WindowState == FormWindowState.Normal)
                 {
@@ -358,6 +398,17 @@ namespace ResxWriter
             { 
                 Debug.WriteLine($"[ERROR] {ex.Message}"); 
             }
+        }
+
+        /// <summary>
+        /// No need to update animation if we're minimized.
+        /// </summary>
+        void frmMain_SizeChanged(object sender, EventArgs e)
+        {
+            if (_timer != null && _timer.Enabled && this.WindowState == FormWindowState.Minimized)
+                _timer?.Stop();
+            else if (_timer != null && !_timer.Enabled)
+                _timer?.Start();
         }
         #endregion
 
@@ -499,20 +550,29 @@ namespace ResxWriter
             textBox.Text = sb.ToString();
         }
 
+        /// <summary>
+        /// Adds the provided <see cref="Dictionary{TKey, TValue}"/> to the <see cref="ListView"/>.
+        /// </summary>
+        /// <param name="dictionary"></param>
+        /// <param name="lv"></param>
         void AddImportToListView(Dictionary<string, string> dictionary, ListView lv)
         {
             int idx = 0;
-            ClearListView();
+            ClearListView(lv);
 
             lv.BeginUpdate();
             foreach (var kvp in dictionary)
                 AddToListView($"{kvp.Key}", $"{kvp.Value}", ++idx, lv);
+
+            ResizeHeaders(lv);
+
             lv.EndUpdate();
         }
 
         /// <summary>
-        /// Thread-safe method
+        /// Update the status label of the applications.
         /// </summary>
+        /// <remarks>Thread safe method</remarks>
         void UpdateStatus(string message)
         {
             try
@@ -529,37 +589,40 @@ namespace ResxWriter
         }
 
         /// <summary>
-        /// Thread-safe method
+        /// Clear the text contents of a <see cref="TextBox"/> and sets the scrollbars property to none.
         /// </summary>
-        public void ClearTextbox()
+        /// <remarks>Thread safe method</remarks>
+        public void ClearTextbox(TextBox tb)
         {
             if (InvokeRequired)
-                BeginInvoke(new Action(() => ClearTextbox()));
+                BeginInvoke(new Action(() => ClearTextbox(tb)));
             else
             {
-                tbContents.Text = string.Empty;
-                tbContents.ScrollBars = ScrollBars.None;
+                tb.Text = string.Empty;
+                tb.ScrollBars = ScrollBars.None;
             }
         }
 
         /// <summary>
-        /// Thread-safe method
+        /// Clears the items in a <see cref="ListView"/>.
         /// </summary>
-        public void ClearListView()
+        /// <remarks>Thread safe method</remarks>
+        public void ClearListView(ListView lv)
         {
             if (InvokeRequired)
-                BeginInvoke(new Action(() => ClearListView()));
+                BeginInvoke(new Action(() => ClearListView(lv)));
             else
             {
-                lvContents.Items.Clear();
+                lv.Items.Clear();
             }
         }
 
         /// <summary>
-        /// Thread-safe method
+        /// Changes the Enabled state of a <see cref="Control"/>.
         /// </summary>
         /// <param name="ctrl"><see cref="Control"/></param>
         /// <param name="state">true=enabled, false=disabled</param>
+        /// <remarks>Thread safe method</remarks>
         public void ToggleControl(Control ctrl, bool state)
         {
             if (InvokeRequired)
@@ -569,10 +632,11 @@ namespace ResxWriter
         }
 
         /// <summary>
-        /// Thread-safe method
+        /// Sets the <see cref="Button"/>'s Image property.
         /// </summary>
         /// <param name="btn"><see cref="Button"/></param>
         /// <param name="img"><see cref="Bitmap"></param>
+        /// <remarks>Thread safe method</remarks>
         public void SwitchButton(Button btn, Bitmap img)
         {
             if (InvokeRequired)
@@ -585,10 +649,11 @@ namespace ResxWriter
         }
 
         /// <summary>
-        /// Thread-safe method
+        /// Changes the Checked state of a <see cref="CheckBox"/> control.
         /// </summary>
         /// <param name="ctrl"><see cref="System.Windows.Forms.CheckBox"/></param>
         /// <param name="state">true=checked, false=unchecked</param>
+        /// <remarks>Thread safe method</remarks>
         public void ToggleCheckBox(CheckBox ctrl, bool state)
         {
             if (InvokeRequired)
@@ -598,10 +663,11 @@ namespace ResxWriter
         }
 
         /// <summary>
-        /// Thread-safe method
+        /// Updates a <see cref="Control"/>'s text property.
         /// </summary>
         /// <param name="ctrl"><see cref="System.Windows.Forms.Control"/></param>
         /// <param name="data">text for control</param>
+        /// <remarks>Thread safe method</remarks>
         public void UpdateControl(Control ctrl, string data)
         {
             if (InvokeRequired)
@@ -611,9 +677,10 @@ namespace ResxWriter
         }
 
         /// <summary>
-        /// Thread-safe method
+        /// Updates the main window state.
         /// </summary>
         /// <param name="state"><see cref="System.Windows.Forms.FormWindowState"/></param>
+        /// <remarks>Thread safe method</remarks>
         void UpdateWindowState(FormWindowState state)
         {
             try
@@ -629,6 +696,7 @@ namespace ResxWriter
         /// <summary>
         /// A simple animation for the generate button.
         /// </summary>
+        /// <remarks>Thread safe method</remarks>
         void FlashButton(Button btn, int blinkCount = 3, int blinkSpeed = 150)
         {
             for (int i = 0; i < blinkCount; i++) 
@@ -636,6 +704,7 @@ namespace ResxWriter
                 Thread.Sleep(blinkSpeed);
                 //ToggleControl(btn, false);
                 SwitchButton(btn, ResxWriter.Properties.Resources.Button02);
+                
                 Thread.Sleep(blinkSpeed);
                 //ToggleControl(btn, true);
                 SwitchButton(btn, ResxWriter.Properties.Resources.Button01);
@@ -664,6 +733,76 @@ namespace ResxWriter
         }
 
         /// <summary>
+        /// To adjust the width of the longest item in the column, set the Width property to -1.
+        /// To autosize to the width of the column heading, set the Width property to -2.
+        /// </summary>
+        /// <param name="listView"><see cref="ListView"/></param>
+        /// <remarks>Thread safe method</remarks>
+        void ResizeHeaders(ListView listView)
+        {
+            try
+            {
+                if (InvokeRequired)
+                    BeginInvoke(new Action(() => ResizeHeaders(listView)));
+                else
+                {
+                    var cols = listView.Columns;
+                    foreach (var col in cols)
+                    {
+                        var ch = col as ColumnHeader;
+                        ch.Width = -2;
+                    }
+                }
+            }
+            catch (Exception) { }
+        }
+
+        /// <summary>
+        /// Uses the current OS theme for the list view (row highlight, hover, columns, etc).
+        /// </summary>
+        /// <param name="listView"><see cref="ListView"/></param>
+        public static void SetListTheme(ListView listView)
+        {
+            //lvContents.Font = Utils.ConvertStringToFont($"{SettingsManager.WindowFontName},11.9999,Regular");
+            Utils.SetWindowTheme(listView.Handle, "Explorer", null);
+            Utils.SendMessage(listView.Handle, Utils.LVM_SETEXTENDEDLISTVIEWSTYLE, new IntPtr(Utils.LVS_EX_DOUBLEBUFFER), new IntPtr(Utils.LVS_EX_DOUBLEBUFFER));
+
+            //SetListViewBackground(listView);
+            //listView.BackgroundImage = ResxWriter.Properties.Resources.App_Icon_png;
+        }
+
+        /// <summary>
+        /// Attach the current form background as an image to 
+        /// <paramref name="lv"/> to fake transparency effect.
+        /// </summary>
+        /// <param name="lv"><see cref="ListView"/></param>
+        /// <remarks>This is not a true transparent effect.</remarks>
+        public static void SetListViewBackground(ListView lv)
+        {
+            int alpha = 32;
+            Point p1 = lv.Parent.PointToScreen(lv.Location);
+            Point p2 = lv.PointToScreen(Point.Empty);
+            p2.Offset(-p1.X, -p1.Y);
+            if (lv.BackgroundImage != null)
+                lv.BackgroundImage.Dispose();
+            lv.Hide();
+            Bitmap bmp = new Bitmap(lv.Parent.Width, lv.Parent.Height);
+            lv.Parent.DrawToBitmap(bmp, lv.Parent.ClientRectangle);
+            Rectangle r = lv.Bounds;
+            r.Offset(p2.X, p2.Y);
+            bmp = bmp.Clone(r, PixelFormat.Format32bppArgb);
+            using (Graphics g = Graphics.FromImage(bmp))
+            {
+                using (SolidBrush br = new SolidBrush(Color.FromArgb(alpha, lv.BackColor)))
+                {
+                    g.FillRectangle(br, lv.ClientRectangle);
+                }
+            }
+            lv.BackgroundImage = bmp;
+            lv.Show();
+        }
+
+        /// <summary>
         /// Get Windows DPI percent scale.
         /// </summary>
         void DetermineWindowDPI()
@@ -680,16 +819,6 @@ namespace ResxWriter
         /// <returns><see cref="Icon"/></returns>
         Icon GetApplicationIcon() => Utils.GetFileIcon(System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".exe", true);
 
-        /// <summary>
-        /// Uses the current OS theme for the list view (row highlight, hover, columns, etc).
-        /// </summary>
-        /// <param name="listView"><see cref="ListView"/></param>
-        public static void SetListTheme(ListView listView)
-        {
-            //lvContents.Font = Utils.ConvertStringToFont($"{SettingsManager.WindowFontName},11.9999,Regular");
-            Utils.SetWindowTheme(listView.Handle, "Explorer", null);
-            Utils.SendMessage(listView.Handle, Utils.LVM_SETEXTENDEDLISTVIEWSTYLE, new IntPtr(Utils.LVS_EX_DOUBLEBUFFER), new IntPtr(Utils.LVS_EX_DOUBLEBUFFER));
-        }
         #endregion
     }
 }

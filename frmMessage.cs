@@ -199,5 +199,8 @@ namespace ResxWriter
             byte b = (byte)(foreColor.B * amount + backColor.B * (1 - amount));
             return Color.FromArgb(r, g, b);
         }
+
+        public Color DarkenColor(Color baseColor, float percentage = 0.3F) => ControlPaint.Dark(baseColor, percentage);
+        public Color LightenColor(Color baseColor, float percentage = 0.3F) => ControlPaint.Light(baseColor, percentage);
     }
 }

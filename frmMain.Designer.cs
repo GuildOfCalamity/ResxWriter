@@ -1,4 +1,6 @@
-﻿namespace ResxWriter
+﻿using System.Windows.Forms;
+
+namespace ResxWriter
 {
     partial class frmMain
     {
@@ -42,12 +44,14 @@
             this.btnGenerateResx = new System.Windows.Forms.Button();
             this.btnExit = new System.Windows.Forms.Button();
             this.lvContents = new System.Windows.Forms.ListView();
+            //this.lvContents = new ListViewTransparent();
             this.columnHeaderKey = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.SuspendLayout();
             // 
             // btnImport
             // 
+            this.btnImport.BackColor = System.Drawing.Color.Transparent;
             this.btnImport.FlatAppearance.MouseOverBackColor = System.Drawing.Color.SteelBlue;
             this.btnImport.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnImport.Font = new System.Drawing.Font("Calibri", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -58,13 +62,14 @@
             this.btnImport.Size = new System.Drawing.Size(141, 30);
             this.btnImport.TabIndex = 2;
             this.btnImport.Text = "Import file";
-            this.btnImport.UseVisualStyleBackColor = true;
+            this.btnImport.UseVisualStyleBackColor = false;
             this.btnImport.Click += new System.EventHandler(this.btnImport_Click);
             // 
             // statusText
             // 
             this.statusText.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.statusText.BackColor = System.Drawing.Color.Transparent;
             this.statusText.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.statusText.ForeColor = System.Drawing.Color.SteelBlue;
             this.statusText.Location = new System.Drawing.Point(9, 498);
@@ -104,6 +109,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
+            this.label1.BackColor = System.Drawing.Color.Transparent;
             this.label1.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.ForeColor = System.Drawing.Color.White;
             this.label1.Location = new System.Drawing.Point(178, 58);
@@ -116,6 +122,7 @@
             // 
             this.cbMetadata.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.cbMetadata.AutoSize = true;
+            this.cbMetadata.BackColor = System.Drawing.Color.Transparent;
             this.cbMetadata.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cbMetadata.ForeColor = System.Drawing.Color.White;
             this.cbMetadata.Location = new System.Drawing.Point(537, 56);
@@ -123,12 +130,13 @@
             this.cbMetadata.Size = new System.Drawing.Size(335, 23);
             this.cbMetadata.TabIndex = 4;
             this.cbMetadata.Text = "Add each item as metadata instead of resource";
-            this.cbMetadata.UseVisualStyleBackColor = true;
+            this.cbMetadata.UseVisualStyleBackColor = false;
             this.cbMetadata.CheckedChanged += new System.EventHandler(this.cbMetadata_CheckedChanged);
             // 
             // btnFileSelect
             // 
             this.btnFileSelect.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnFileSelect.BackColor = System.Drawing.Color.Transparent;
             this.btnFileSelect.FlatAppearance.BorderSize = 0;
             this.btnFileSelect.FlatAppearance.MouseOverBackColor = System.Drawing.Color.SteelBlue;
             this.btnFileSelect.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -140,7 +148,7 @@
             this.btnFileSelect.Size = new System.Drawing.Size(32, 28);
             this.btnFileSelect.TabIndex = 1;
             this.btnFileSelect.Text = "1";
-            this.btnFileSelect.UseVisualStyleBackColor = true;
+            this.btnFileSelect.UseVisualStyleBackColor = false;
             this.btnFileSelect.Click += new System.EventHandler(this.btnFileSelect_Click);
             // 
             // tbContents
@@ -148,6 +156,7 @@
             this.tbContents.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.tbContents.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(20)))));
             this.tbContents.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.tbContents.Enabled = false;
             this.tbContents.Font = new System.Drawing.Font("Consolas", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.tbContents.ForeColor = System.Drawing.Color.SteelBlue;
             this.tbContents.Location = new System.Drawing.Point(15, 98);
@@ -155,6 +164,7 @@
             this.tbContents.Name = "tbContents";
             this.tbContents.Size = new System.Drawing.Size(856, 150);
             this.tbContents.TabIndex = 5;
+            this.tbContents.Visible = false;
             this.tbContents.WordWrap = false;
             // 
             // panelLine
@@ -170,6 +180,7 @@
             // statusTime
             // 
             this.statusTime.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.statusTime.BackColor = System.Drawing.Color.Transparent;
             this.statusTime.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.statusTime.ForeColor = System.Drawing.Color.SteelBlue;
             this.statusTime.Location = new System.Drawing.Point(779, 498);
@@ -182,6 +193,7 @@
             // btnGenerateResx
             // 
             this.btnGenerateResx.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.btnGenerateResx.BackColor = System.Drawing.Color.Transparent;
             this.btnGenerateResx.FlatAppearance.BorderSize = 0;
             this.btnGenerateResx.FlatAppearance.MouseOverBackColor = System.Drawing.Color.SteelBlue;
             this.btnGenerateResx.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -192,12 +204,13 @@
             this.btnGenerateResx.Padding = new System.Windows.Forms.Padding(0, 0, 5, 5);
             this.btnGenerateResx.Size = new System.Drawing.Size(80, 80);
             this.btnGenerateResx.TabIndex = 6;
-            this.btnGenerateResx.UseVisualStyleBackColor = true;
+            this.btnGenerateResx.UseVisualStyleBackColor = false;
             this.btnGenerateResx.Click += new System.EventHandler(this.btnGenerateResx_Click);
             // 
             // btnExit
             // 
             this.btnExit.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnExit.BackColor = System.Drawing.Color.Transparent;
             this.btnExit.FlatAppearance.BorderSize = 0;
             this.btnExit.FlatAppearance.MouseOverBackColor = System.Drawing.Color.SteelBlue;
             this.btnExit.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -208,7 +221,7 @@
             this.btnExit.Padding = new System.Windows.Forms.Padding(0, 0, 5, 5);
             this.btnExit.Size = new System.Drawing.Size(123, 80);
             this.btnExit.TabIndex = 7;
-            this.btnExit.UseVisualStyleBackColor = true;
+            this.btnExit.UseVisualStyleBackColor = false;
             this.btnExit.Click += new System.EventHandler(this.btnExit_Click);
             // 
             // lvContents
@@ -227,7 +240,7 @@
             this.lvContents.HideSelection = false;
             this.lvContents.Location = new System.Drawing.Point(15, 98);
             this.lvContents.Name = "lvContents";
-            this.lvContents.Size = new System.Drawing.Size(856, 292);
+            this.lvContents.Size = new System.Drawing.Size(854, 292);
             this.lvContents.TabIndex = 12;
             this.lvContents.UseCompatibleStateImageBehavior = false;
             this.lvContents.View = System.Windows.Forms.View.Details;
@@ -236,7 +249,7 @@
             // columnHeaderKey
             // 
             this.columnHeaderKey.Text = "Key";
-            this.columnHeaderKey.Width = 150;
+            this.columnHeaderKey.Width = 140;
             // 
             // columnHeaderValue
             // 
@@ -271,6 +284,7 @@
             this.Text = "Resx Writer";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmMain_FormClosing);
             this.Shown += new System.EventHandler(this.frmMain_Shown);
+            this.SizeChanged += new System.EventHandler(this.frmMain_SizeChanged);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -291,6 +305,7 @@
         private System.Windows.Forms.Button btnGenerateResx;
         private System.Windows.Forms.Button btnExit;
         private System.Windows.Forms.ListView lvContents;
+        //private ListViewTransparent lvContents;
         private System.Windows.Forms.ColumnHeader columnHeaderKey;
         private System.Windows.Forms.ColumnHeader columnHeaderValue;
     }

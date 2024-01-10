@@ -19,18 +19,81 @@ namespace ResxWriter
     public static class Utils
     {
         #region [ListView Stuff]
-        public const int LVM_FIRST = 0x1000;
-        public const int LVM_GETHEADER = LVM_FIRST + 31;
-        public const int LVM_SETSELECTEDCOLUMN = LVM_FIRST + 140;
-        public const int LVM_SETEXTENDEDLISTVIEWSTYLE = LVM_FIRST + 54;
-        public const int LVS_EX_DOUBLEBUFFER = 0x00010000;
+        public const uint LVM_FIRST = 0x1000;
+        public const uint LVM_GETHEADER = LVM_FIRST + 31;
+        public const uint LVM_SETSELECTEDCOLUMN = LVM_FIRST + 140;
+        public const uint LVM_SETEXTENDEDLISTVIEWSTYLE = LVM_FIRST + 54;
+        public const uint LVS_EX_GRIDLINES        = 0x00000001;
+        public const uint LVS_EX_SUBITEMIMAGES    = 0x00000002;
+        public const uint LVS_EX_CHECKBOXES       = 0x00000004;
+        public const uint LVS_EX_TRACKSELECT      = 0x00000008;
+        public const uint LVS_EX_HEADERDRAGDROP   = 0x00000010;
+        public const uint LVS_EX_FULLROWSELECT    = 0x00000020; // Applies to report mode only
+        public const uint LVS_EX_ONECLICKACTIVATE = 0x00000040;
+        public const uint LVS_EX_TWOCLICKACTIVATE = 0x00000080;
+        public const uint LVS_EX_FLATSB           = 0x00000100;
+        public const uint LVS_EX_REGIONAL         = 0x00000200;
+        public const uint LVS_EX_INFOTIP          = 0x00000400; // ListView does InfoTips for you
+        public const uint LVS_EX_UNDERLINEHOT     = 0x00000800;
+        public const uint LVS_EX_UNDERLINECOLD    = 0x00001000;
+        public const uint LVS_EX_MULTIWORKAREAS   = 0x00002000;
+        public const uint LVS_EX_LABELTIP         = 0x00004000; // ListView unfolds partly hidden labels if it does not have infotip text
+        public const uint LVS_EX_BORDERSELECT     = 0x00008000; // Border selection style instead of highlight
+        public const uint LVS_EX_DOUBLEBUFFER     = 0x00010000; // Used with LVM_SETEXTENDEDLISTVIEWSTYLE
+        public const uint LVS_EX_HIDELABELS       = 0x00020000;
+        public const uint LVS_EX_SINGLEROW        = 0x00040000;
+        public const uint LVS_EX_SNAPTOGRID       = 0x00080000;  // Icons automatically snap to grid.
+        public const uint LVS_EX_SIMPLESELECT     = 0x00100000;  // Also changes overlay rendering to top right for icon mode.
+        public const uint LVS_EX_JUSTIFYCOLUMNS   = 0x00200000;  // Icons are lined up in columns that use up the whole view area.
+        public const uint LVS_EX_TRANSPARENTBKGND = 0x00400000;  // Background is painted by the parent via WM_PRINTCLIENT
+        public const uint LVS_EX_TRANSPARENTSHADOWTEXT = 0x00800000; // Enable shadow text on transparent backgrounds only (useful with bitmaps)
+        public const uint LVS_EX_AUTOAUTOARRANGE  = 0x01000000;  // Icons automatically arrange if no icon positions have been set
+        public const uint LVS_EX_HEADERINALLVIEWS = 0x02000000;  // Display column header in all view modes
+        public const uint LVS_EX_AUTOCHECKSELECT  = 0x08000000;
+        public const uint LVS_EX_AUTOSIZECOLUMNS  = 0x10000000;
+        public const uint LVS_EX_COLUMNSNAPPOINTS = 0x40000000;
+        public const uint LVS_EX_COLUMNOVERFLOW  = 0x80000000;
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct HDITEM
+        {
+            public Mask mask;
+            public int cxy;
+            [MarshalAs(UnmanagedType.LPTStr)]
+            public string pszText;
+            public IntPtr hbm;
+            public int cchTextMax;
+            public Format fmt;
+            public IntPtr lParam;
+            // _WIN32_IE >= 0x0300 
+            public int iImage;
+            public int iOrder;
+            // _WIN32_IE >= 0x0500
+            public uint type;
+            public IntPtr pvFilter;
+            // _WIN32_WINNT >= 0x0600
+            public uint state;
+
+            [Flags]
+            public enum Mask
+            {
+                Format = 0x4,       // HDI_FORMAT
+            };
+
+            [Flags]
+            public enum Format
+            {
+                SortDown = 0x200,   // HDF_SORTDOWN
+                SortUp = 0x400,     // HDF_SORTUP
+            };
+        };
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr SendMessage(IntPtr hWnd, UInt32 msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("uxtheme.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
         public static extern int SetWindowTheme(IntPtr hwnd, string pszSubAppName, string pszSubIdList);
-        #endregion
+#endregion
 
         /// <summary>
         /// Invoke action delegate on main thread if required.
