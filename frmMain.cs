@@ -18,7 +18,6 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
 using System.Xml;
-using static System.Windows.Forms.AxHost;
 
 namespace ResxWriter
 {
