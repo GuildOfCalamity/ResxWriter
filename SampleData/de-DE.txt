@@ -2,3 +2,7 @@
 Prompt	Bitte legen Sie Ihre Karte ein.
 Error	Es gab ein Problem.
 Legal	Hiermit wird jeder Person, die eine Kopie dieser Software und der zugehörigen Dokumentationsdateien (die „Software“) erhält, kostenlos die Erlaubnis erteilt, die Software ohne Einschränkung zu nutzen.
+PullForward	Bitte fahren Sie bis zum Tor.
+SeeAttendant	Bitte wenden Sie sich an den Servicemitarbeiter.
+ClubMember	Willkommen zurück, geschätztes Clubmitglied!
+Renew	Möchten Sie Ihr Abonnement verlängern?
