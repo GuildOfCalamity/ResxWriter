@@ -108,6 +108,17 @@ namespace ResxWriter
 
             // Have we saved a location that is not possible?
             CanWeFit(this, new Rectangle(30, 20, 900, 575));
+
+            if (SettingsManager.MakeShortcut)
+            {
+                // ** Desktop Shortcut **
+                if (!Utils.DoesShortcutExist(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name))
+                    Utils.CreateApplicationShortcut(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name, true);
+
+                // ** StartMenu Shortcut **
+                //if (!Utils.DoesShortcutExist(Environment.GetFolderPath(Environment.SpecialFolder.Programs), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name))
+                //    Utils.CreateApplicationShortcut(Environment.GetFolderPath(Environment.SpecialFolder.Programs), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name, true);
+            }
         }
 
         /// <summary>
@@ -818,6 +829,24 @@ namespace ResxWriter
         /// <returns><see cref="Icon"/></returns>
         Icon GetApplicationIcon() => Utils.GetFileIcon(System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".exe", true);
 
+        /// <summary>
+        /// Test method.
+        /// </summary>
+        void AddOpenWithOptionToExplorerShell(bool addToShell)
+        {
+            try
+            {
+                string path = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), Assembly.GetExecutingAssembly().GetName().Name + ".exe");
+                string agPath = string.Format("\"{0}\"", Application.ExecutablePath);
+                string explorerText = $"Open using {Assembly.GetExecutingAssembly().GetName().Name}...";
+                string args = string.Format("\"{0}\" {1} {2}", addToShell, agPath, explorerText);
+                Utils.AttemptPrivilegeEscalation(path, args, false);
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Write($"An error occurred trying to call the privilege escaltion to set the right click search option: {ex.Message}", LogLevel.Error);
+            }
+        }
         #endregion
     }
 }

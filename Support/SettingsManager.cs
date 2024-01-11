@@ -13,6 +13,7 @@ namespace ResxWriter
         #region [Backing Members]
         static SettingsManager _Settings = null;
         bool darkTheme = true;
+        bool makeShortcut = true;
         string lastPath = "";
         string lastDelimiter = "";
         string language = "en-US";
@@ -99,6 +100,12 @@ namespace ResxWriter
         {
             get { return AppSettings.darkTheme; }
             set { AppSettings.darkTheme = value; }
+        }
+
+        public static bool MakeShortcut
+        {
+            get { return AppSettings.makeShortcut; }
+            set { AppSettings.makeShortcut = value; }
         }
 
         public static string LastPath
