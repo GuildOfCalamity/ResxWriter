@@ -1,6 +1,6 @@
 ﻿## 💻 WinForms - Resx Writer
 
-![Image](./Assets/ScreenShot.png)
+![Image](/Assets/ScreenShot.png)
 
 ## 🎛️ Description
 * Creates .resx file from the imported delimited text file.

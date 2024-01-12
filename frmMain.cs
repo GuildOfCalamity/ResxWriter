@@ -97,14 +97,17 @@ namespace ResxWriter
             //this.BackgroundImageLayout = ImageLayout.Stretch;
             //this.BackgroundImage = Image.FromFile(Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "Background.png"));
 
-            // Create and configure the timer for our background animation.
-            _backgroundImage = ResxWriter.Properties.Resources.App_Icon_png;
-            _marginX = (int)(_backgroundImage.Width * 0.11) * -1;
-            _marginY = (int)(_backgroundImage.Height * 0.09) * -1;
-            _timer = new System.Windows.Forms.Timer();
-            _timer.Interval = 40; // milliseconds
-            _timer.Tick += TimerOnTick;
-            _timer.Start();
+            if (SettingsManager.RunAnimation)
+            {
+                // Create and configure the timer for our background animation.
+                _backgroundImage = ResxWriter.Properties.Resources.App_Icon_png;
+                _marginX = (int)(_backgroundImage.Width * 0.11) * -1;
+                _marginY = (int)(_backgroundImage.Height * 0.09) * -1;
+                _timer = new System.Windows.Forms.Timer();
+                _timer.Interval = 40; // milliseconds
+                _timer.Tick += TimerOnTick;
+                _timer.Start();
+            }
 
             // Have we saved a location that is not possible?
             CanWeFit(this, new Rectangle(30, 20, 900, 575));
@@ -345,7 +348,13 @@ namespace ResxWriter
         {
             var cb = sender as CheckBox;
             if (cb != null)
+            {
                 _useMeta = cb.Checked;
+                if (_useMeta)
+                    cb.Text = "Items will be added as metadata";
+                else
+                    cb.Text = "Items will be added as resources";
+            }
         }
 
         void cbDelimiters_TextUpdate(object sender, EventArgs e)
@@ -830,17 +839,24 @@ namespace ResxWriter
         Icon GetApplicationIcon() => Utils.GetFileIcon(System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".exe", true);
 
         /// <summary>
-        /// Test method.
+        /// Test method for adding a right-click option to the explorer shell.
         /// </summary>
         void AddOpenWithOptionToExplorerShell(bool addToShell)
         {
+            string path = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), $"AddToShell.exe");
             try
             {
-                string path = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), Assembly.GetExecutingAssembly().GetName().Name + ".exe");
-                string agPath = string.Format("\"{0}\"", Application.ExecutablePath);
-                string explorerText = $"Open using {Assembly.GetExecutingAssembly().GetName().Name}...";
-                string args = string.Format("\"{0}\" {1} {2}", addToShell, agPath, explorerText);
-                Utils.AttemptPrivilegeEscalation(path, args, false);
+                if (File.Exists(path))
+                {
+                    string argPath = string.Format("\"{0}\"", Application.ExecutablePath);
+                    string explorerText = $"Open using {Assembly.GetExecutingAssembly().GetName().Name}...";
+                    string args = string.Format("\"{0}\" {1} {2}", addToShell, argPath, explorerText);
+                    Utils.AttemptPrivilegeEscalation(path, args, false);
+                }
+                else
+                {
+                    Logger.Instance.Write($"An error occurred trying to find the utility.", LogLevel.Warning);
+                }
             }
             catch (Exception ex)
             {

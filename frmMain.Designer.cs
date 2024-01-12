@@ -44,7 +44,6 @@ namespace ResxWriter
             this.btnGenerateResx = new System.Windows.Forms.Button();
             this.btnExit = new System.Windows.Forms.Button();
             this.lvContents = new System.Windows.Forms.ListView();
-            //this.lvContents = new ListViewTransparent();
             this.columnHeaderKey = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.SuspendLayout();
@@ -121,13 +120,18 @@ namespace ResxWriter
             // cbMetadata
             // 
             this.cbMetadata.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.cbMetadata.Appearance = System.Windows.Forms.Appearance.Button;
             this.cbMetadata.AutoSize = true;
             this.cbMetadata.BackColor = System.Drawing.Color.Transparent;
-            this.cbMetadata.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cbMetadata.FlatAppearance.BorderSize = 0;
+            this.cbMetadata.FlatAppearance.CheckedBackColor = System.Drawing.Color.DodgerBlue;
+            this.cbMetadata.FlatAppearance.MouseOverBackColor = System.Drawing.Color.SteelBlue;
+            this.cbMetadata.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cbMetadata.Font = new System.Drawing.Font("Calibri", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cbMetadata.ForeColor = System.Drawing.Color.White;
-            this.cbMetadata.Location = new System.Drawing.Point(537, 56);
+            this.cbMetadata.Location = new System.Drawing.Point(562, 58);
             this.cbMetadata.Name = "cbMetadata";
-            this.cbMetadata.Size = new System.Drawing.Size(335, 23);
+            this.cbMetadata.Size = new System.Drawing.Size(307, 28);
             this.cbMetadata.TabIndex = 4;
             this.cbMetadata.Text = "Add each item as metadata instead of resource";
             this.cbMetadata.UseVisualStyleBackColor = false;

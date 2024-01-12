@@ -9,11 +9,13 @@ namespace ResxWriter
     {
         const string VERSION = "1.0";
         const string EXTENSION = ".config.xml";
+        private SettingsManager() { }
 
         #region [Backing Members]
         static SettingsManager _Settings = null;
         bool darkTheme = true;
         bool makeShortcut = true;
+        bool runAnimation = false;
         string lastPath = "";
         string lastDelimiter = "";
         string language = "en-US";
@@ -26,11 +28,13 @@ namespace ResxWriter
         int windowsDPI = 100;
         #endregion
 
-        private SettingsManager() { }
-
+        #region [Public Properties]
         /// <summary>
         /// Static reference to this class.
         /// </summary>
+        /// <remarks>
+        /// The first time this property is used the existing settings will be loaded.
+        /// </remarks>
         public static SettingsManager AppSettings
         {
             get
@@ -56,75 +60,82 @@ namespace ResxWriter
 
         public static string WindowFontName
         {
-            get { return AppSettings.windowFontName; }
-            set { AppSettings.windowFontName = value; }
+            get => AppSettings.windowFontName;
+            set => AppSettings.windowFontName = value;
         }
 
         public static int WindowWidth
         {
-            get { return AppSettings.windowWidth; }
-            set { AppSettings.windowWidth = value; }
+            get => AppSettings.windowWidth;
+            set => AppSettings.windowWidth = value;
         }
 
         public static int WindowHeight
         {
-            get { return AppSettings.windowHeight; }
-            set { AppSettings.windowHeight = value; }
+            get => AppSettings.windowHeight;
+            set => AppSettings.windowHeight = value;
         }
 
         public static int WindowTop
         {
-            get { return AppSettings.windowTop; }
-            set { AppSettings.windowTop = value; }
+            get => AppSettings.windowTop;
+            set => AppSettings.windowTop = value;
         }
 
         public static int WindowLeft
         {
-            get { return AppSettings.windowLeft; }
-            set { AppSettings.windowLeft = value; }
+            get => AppSettings.windowLeft;
+            set => AppSettings.windowLeft = value;
         }
 
         public static int WindowState
         {
-            get { return AppSettings.windowState; }
-            set { AppSettings.windowState = value; }
+            get => AppSettings.windowState;
+            set => AppSettings.windowState = value;
         }
 
         public static int WindowsDPI
         {
-            get { return AppSettings.windowsDPI; }
-            set { AppSettings.windowsDPI = value; }
+            get => AppSettings.windowsDPI;
+            set => AppSettings.windowsDPI = value;
         }
 
         public static bool DarkTheme
         {
-            get { return AppSettings.darkTheme; }
-            set { AppSettings.darkTheme = value; }
+            get => AppSettings.darkTheme;
+            set => AppSettings.darkTheme = value;
         }
 
         public static bool MakeShortcut
         {
-            get { return AppSettings.makeShortcut; }
-            set { AppSettings.makeShortcut = value; }
+            get => AppSettings.makeShortcut;
+            set => AppSettings.makeShortcut = value;
+        }
+
+        public static bool RunAnimation
+        {
+            get => AppSettings.runAnimation;
+            set => AppSettings.runAnimation = value;
         }
 
         public static string LastPath
         {
-            get { return AppSettings.lastPath; }
-            set { AppSettings.lastPath = value; }
+            get => AppSettings.lastPath;
+            set => AppSettings.lastPath = value;
         }
 
         public static string LastDelimiter
         {
-            get { return AppSettings.lastDelimiter; }
-            set { AppSettings.lastDelimiter = value; }
+            get => AppSettings.lastDelimiter;
+            set => AppSettings.lastDelimiter = value;
         }
 
         public static string Language
         {
-            get { return AppSettings.language; }
-            set { AppSettings.language = value; }
+            get => AppSettings.language;
+            set => AppSettings.language = value;
         }
+        #endregion
 
         #region [I/O Methods]
         /// <summary>
@@ -178,7 +189,7 @@ namespace ResxWriter
                                         {
                                             try
                                             {
-                                                // try for type's Parse method with a string parameter
+                                                // Attempt to use the type's Parse method with a string parameter.
                                                 MethodInfo method = property.PropertyType.GetMethod("Parse", new Type[] { typeof(string) });
                                                 if (method != null)
                                                 {
@@ -187,7 +198,7 @@ namespace ResxWriter
                                                 }
                                                 else
                                                 {
-                                                    // just try to set the object directly
+                                                    // If we don't have a reflected Parse method, then try to set the object directly.
                                                     if (property.CanWrite)
                                                         property.SetValue(classRecord, data, null);
                                                 }
@@ -223,7 +234,7 @@ namespace ResxWriter
             }
             catch (Exception ex)
             {
-                Logger.Instance.Write($"Unable to load settings at {path}, version {version}, message {ex.Message}", LogLevel.Error);
+                Logger.Instance.Write($"Unable to load settings \"{path}\", version {version}, error: {ex.Message}", LogLevel.Error);
             }
 
             return false;
@@ -258,22 +269,29 @@ namespace ResxWriter
                 {
                     if (property.CanWrite)
                     {
-                        propertyNode = xmlDoc.CreateElement("property");
-                        valueNode = xmlDoc.CreateElement("value");
+                        try
+                        {
+                            propertyNode = xmlDoc.CreateElement("property");
+                            valueNode = xmlDoc.CreateElement("value");
 
-                        attrib = xmlDoc.CreateAttribute("name");
-                        attrib.Value = property.Name;
-                        propertyNode.Attributes.Append(attrib);
+                            attrib = xmlDoc.CreateAttribute("name");
+                            attrib.Value = property.Name;
+                            propertyNode.Attributes.Append(attrib);
 
-                        attrib = xmlDoc.CreateAttribute("type");
-                        attrib.Value = property.PropertyType.ToString();
-                        propertyNode.Attributes.Append(attrib);
+                            attrib = xmlDoc.CreateAttribute("type");
+                            attrib.Value = property.PropertyType.ToString();
+                            propertyNode.Attributes.Append(attrib);
 
-                        if (property.GetValue(classRecord, null) != null)
-                            valueNode.InnerText = property.GetValue(classRecord, null).ToString();
+                            if (property.GetValue(classRecord, null) != null)
+                                valueNode.InnerText = property.GetValue(classRecord, null).ToString();
 
-                        propertyNode.AppendChild(valueNode);
-                        rootNode.AppendChild(propertyNode);
+                            propertyNode.AppendChild(valueNode);
+                            rootNode.AppendChild(propertyNode);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Instance.Write($"Could not create property element: {ex.Message}", LogLevel.Warning);
+                        }
                     }
                 }
 
@@ -295,7 +313,7 @@ namespace ResxWriter
             }
             catch (Exception ex)
             {
-                Logger.Instance.Write($"Unable to save settings at {path}, version {version}, message {ex.Message}");
+                Logger.Instance.Write($"Unable to save settings \"{path}\", version {version}, error: {ex.Message}", LogLevel.Error);
             }
 
             return false;

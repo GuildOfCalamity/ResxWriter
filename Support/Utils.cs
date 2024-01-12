@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
@@ -208,21 +209,34 @@ namespace ResxWriter
             }
             else
             {
-                // Use ExtractIconEx to get the icon.
-                IntPtr[] hIconEx = new IntPtr[1] { IntPtr.Zero };
-                int iconCount = 0;
-
-                if (large)
-                    iconCount = UnManagedMethods.ExtractIconEx(filePath, iconIndex, hIconEx, null, 1);
-                else
-                    iconCount = UnManagedMethods.ExtractIconEx(filePath, iconIndex, null, hIconEx, 1);
-
-                // If success then return as a GDI+ object
                 Icon icon = null;
-                if (hIconEx[0] != IntPtr.Zero)
+                try
                 {
-                    icon = Icon.FromHandle(hIconEx[0]);
-                    //Utils.UnManagedMethods.DestroyIcon(hIconEx[0]);
+                    // Use ExtractIconEx to get the icon.
+                    IntPtr[] hIconEx = new IntPtr[1] { IntPtr.Zero };
+                    int iconCount = 0;
+
+                    if (large)
+                        iconCount = UnManagedMethods.ExtractIconEx(filePath, iconIndex, hIconEx, null, 1);
+                    else
+                        iconCount = UnManagedMethods.ExtractIconEx(filePath, iconIndex, null, hIconEx, 1);
+
+                    // If success then return as a GDI+ object
+                    if (hIconEx[0] != IntPtr.Zero)
+                    {
+                        icon = Icon.FromHandle(hIconEx[0]);
+                        //Utils.UnManagedMethods.DestroyIcon(hIconEx[0]);
+                    }
+                }
+                catch (RuntimeWrappedException rwe) // catch any non-CLS exceptions
+                {
+                    var s = rwe.WrappedException as string;
+                    if (s != null)
+                        Logger.Instance.Write($"{s}", LogLevel.Error);
+                }
+                catch (Win32Exception ex) //occurs when the user has clicked Cancel on the UAC prompt.
+                {
+                    Logger.Instance.Write($"[{ex.ErrorCode}]{ex.Message}", LogLevel.Error);
                 }
 
                 return icon;
@@ -371,7 +385,7 @@ namespace ResxWriter
                 throw new ArgumentNullException("path");
 
             if (!File.Exists(path))
-                throw new FileNotFoundException("path");
+                throw new FileNotFoundException(path);
 
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.UseShellExecute = true;
@@ -379,27 +393,28 @@ namespace ResxWriter
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
 
             // Only do this for Vista+ since xp has an older runas dialog.
-            // If runas set to false will assume that the application has a manifest and so we don't need this.
+            // If runas set to false will assume that the application has
+            // a manifest and so we don't need this.
             if (IsWindowsVistaOrLater && runas)
-            {
                 startInfo.Verb = "runas"; // will bring up the UAC run-as menu when this ProcessStartInfo is used
-            }
 
             if (!string.IsNullOrEmpty(args))
-            {
                 startInfo.Arguments = args;
-            }
 
             try
             {
                 Process p = Process.Start(startInfo);
-                //if (modal)
-                //   p.WaitForExit();
+                //p.WaitForExit();
             }
-
-            catch (System.ComponentModel.Win32Exception) //occurs when the user has clicked Cancel on the UAC prompt.
+            catch (RuntimeWrappedException rwe) // catch any non-CLS exceptions
             {
-                return;
+                var s = rwe.WrappedException as string;
+                if (s != null)
+                    Logger.Instance.Write($"{s}", LogLevel.Error);
+            }
+            catch (Win32Exception ex) //occurs when the user has clicked Cancel on the UAC prompt.
+            {
+                Logger.Instance.Write($"[{ex.ErrorCode}]{ex.Message}", LogLevel.Error);
             }
         }
         #endregion
