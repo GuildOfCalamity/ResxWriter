@@ -30,6 +30,7 @@ namespace ResxWriter
         readonly List<string> _commonDelimiters = new List<string> { ",", ";", "~", "|", "TAB" };
         Dictionary<string, string> _userValues = new Dictionary<string, string>();
         string _userDelimiter = string.Empty;
+        string _passedArg = string.Empty;
         string _genericError = "An error was detected.";
         bool _useMeta = false;
         bool _closing = false;
@@ -50,6 +51,15 @@ namespace ResxWriter
             InitializeComponent();
         }
 
+        public frmMain(string[] args)
+        {
+            InitializeComponent();
+            foreach (var a in args)
+            { 
+                _passedArg = $"{a}"; 
+            }
+        }
+
         #region [Event Methods]
         void frmMain_Shown(object sender, EventArgs e)
         {
@@ -61,7 +71,9 @@ namespace ResxWriter
 
             #region [Load settings]
             var lastPath = SettingsManager.LastPath;
-            if (!string.IsNullOrEmpty(lastPath))
+            if (!string.IsNullOrEmpty(_passedArg))
+                tbFilePath.Text = _passedArg;
+            else if (!string.IsNullOrEmpty(lastPath))
                 tbFilePath.Text = lastPath;
             else
                 tbFilePath.Text = $"{Environment.CurrentDirectory}\\";
