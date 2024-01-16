@@ -3,6 +3,10 @@ using System.Diagnostics;
 
 namespace AddToShell
 {
+    /// <summary>
+    /// To test add the following command-line arguments to the project properties:
+    /// "True" "D:\repos\ResxWriter\bin\Debug\ResxWriter.exe" "Open using ResxWriter..."
+    /// </summary>
     internal class Program
     {
         public static string AppTitle = "ResxWriter";
@@ -35,6 +39,9 @@ namespace AddToShell
 
         /// <summary>
         /// Set registry entry to make application a right-click option on a folder.
+        /// Two key structures will be created:
+        ///   - HKEY_CLASSES_ROOT\Directory\shell\ResxWriter
+        ///   - HKEY_CLASSES_ROOT\Directory\background\shell\ResxWriter
         /// </summary>
         /// <param name="setOption">True = Set registry value, False = remove registry value</param>
         /// <param name="path">Full path to AppTitle.exe</param>
@@ -51,6 +58,7 @@ namespace AddToShell
                 Microsoft.Win32.RegistryKey _appBGKey;
                 Microsoft.Win32.RegistryKey _appDriveKey;
 
+                // Make sure the basic structure exists.
                 if (_key != null && _bgKey != null && _driveKey != null)
                 {
                     if (setOption)
