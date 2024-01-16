@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Xml;
@@ -56,6 +57,11 @@ namespace ResxWriter
         public static string Location
         {
             get => Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}{EXTENSION}");
+
+            //if (IsPortable)
+            //   return Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
+            //else
+            //   return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}");
         }
 
         public static string WindowFontName
@@ -319,5 +325,10 @@ namespace ResxWriter
             return false;
         }
         #endregion
+
+        public override string ToString()
+        {
+            return "{Top=" + WindowTop.ToString(CultureInfo.CurrentCulture) + ",Left=" + WindowLeft.ToString(CultureInfo.CurrentCulture) + ",Width=" + WindowWidth.ToString(CultureInfo.CurrentCulture) + ",Height=" + WindowHeight.ToString(CultureInfo.CurrentCulture) + ",DarkTheme=" + DarkTheme.ToString(CultureInfo.CurrentCulture) + "}";
+        }
     }
 }

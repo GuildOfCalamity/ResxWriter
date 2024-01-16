@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ResxWriter
@@ -94,7 +93,23 @@ namespace ResxWriter
 
         [DllImport("uxtheme.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
         public static extern int SetWindowTheme(IntPtr hwnd, string pszSubAppName, string pszSubIdList);
-#endregion
+        #endregion
+
+        /// <summary>
+        /// Determines if <paramref name="c1"/> intersects with <paramref name="c2"/>.
+        /// </summary>
+        /// <returns>true if controls overlap, false otherwise</returns>
+        public static bool CollidesWith(this Control c1, Control c2)
+        {
+            bool result = false;
+
+            var p1 = c1.Parent.PointToScreen(c1.Location);
+            var p2 = c2.Parent.PointToScreen(c2.Location);
+            if (p1.X < p2.X + c2.Width && p2.X < p1.X + c1.Width && p1.Y < p2.Y + c2.Height)
+                result = p2.Y < p1.Y + c1.Height;
+
+            return result;
+        }
 
         /// <summary>
         /// Invoke action delegate on main thread if required.
@@ -133,6 +148,90 @@ namespace ResxWriter
             string[] fontValues = font.Split(new char[] { ',', '|', ';' }, StringSplitOptions.RemoveEmptyEntries);
             return new System.Drawing.Font(fontValues[0], float.Parse(fontValues[1], System.Globalization.CultureInfo.InvariantCulture), (System.Drawing.FontStyle)Enum.Parse(typeof(System.Drawing.FontStyle), fontValues[2], true), System.Drawing.GraphicsUnit.Point, ((byte)(0)));
         }
+
+        /// <summary>
+        /// Splits the given string by a string. Includes a minimum length to match.
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="delimiter"></param>
+        /// <param name="minLength">Tokens must be at least this length or greater to be considered. Value is 1 by default.</param>
+        /// <returns><see cref="String[]"/></returns>
+        public static string[] SplitStringToArray(this string source, string delimiter, int minLength = 1)
+        {
+            string[] tokens = source.Split(new string[] { delimiter }, StringSplitOptions.RemoveEmptyEntries);
+            return tokens.Where(token => token.Length >= minLength).ToArray();
+        }
+
+        /// <summary>
+        /// Splits the given string by a string. Includes a minimum length to match.
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="delimiter"></param>
+        /// <param name="minLength">Tokens must be at least this length or greater to be considered. Value is 1 by default.</param>
+        /// <returns><see cref="IEnumerable{T}"/></returns>
+        public static IEnumerable<string> SplitStringToEnumerable(this string source, string delimiter, int minLength = 1)
+        {
+            string[] tokens = source.Split(new string[] { delimiter }, StringSplitOptions.RemoveEmptyEntries);
+            return tokens.Where(token => token.Length >= minLength);
+        }
+
+        public static List<string> ReadAllLines(string filePath)
+        {
+            List<string> results = new List<string>();
+            string[] lines = File.ReadAllLines(filePath);
+            //string[] filtered = Array.Filter(lines, line => !string.IsNullOrWhiteSpace(line));
+            Array.ForEach(lines, (l) =>
+            {
+                if (!string.IsNullOrWhiteSpace(l))
+                    results.Add(l);
+            });
+
+            return results;
+        }
+
+        public static void CreateAllLines(this string[] lines, string filePath)
+        {
+            try
+            {
+                using (StreamWriter sw = File.CreateText(filePath))
+                {
+                    foreach (string line in lines)
+                    {
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            sw.WriteLine(line);
+                        }
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"CreateAllLines: {ex.Message}");
+            }        
+        }
+
+        public static void AppendAllLines(this string[] lines, string filePath)
+        {
+            try
+            {
+                using (StreamWriter sw = File.AppendText(filePath))
+                {
+                    foreach (string line in lines)
+                    {
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            sw.WriteLine(line);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"CreateAllLines: {ex.Message}");
+            }
+        }
+
 
         /// <summary>
         /// Returns the declaring type's namespace.
