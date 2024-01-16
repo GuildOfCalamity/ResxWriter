@@ -1,5 +1,4 @@
-﻿using ResxWriter.Properties;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,13 +8,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Resources;
-using System.Runtime.InteropServices;
-using System.Runtime.Remoting.Contexts;
-using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -58,6 +53,12 @@ namespace ResxWriter
             { 
                 _passedArg = $"{a}"; 
             }
+
+            // Test for adding explorer right-click context:
+            if (_passedArg.Length > 0 && _passedArg.Contains("shell-extension-add"))
+                AddOpenWithOptionToExplorerShell(true);
+            else if (_passedArg.Length > 0 && _passedArg.Contains("shell-extension-sub"))
+                AddOpenWithOptionToExplorerShell(false);
         }
 
         #region [Event Methods]
@@ -101,13 +102,13 @@ namespace ResxWriter
             SetListTheme(lvContents);
 
             // Restore user's desired location.
-            this.Top = SettingsManager.WindowTop;
-            this.Left = SettingsManager.WindowLeft;
-            this.Width = SettingsManager.WindowWidth;
-            this.Height = SettingsManager.WindowHeight;
-
-            //this.BackgroundImageLayout = ImageLayout.Stretch;
-            //this.BackgroundImage = Image.FromFile(Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "Background.png"));
+            if (SettingsManager.WindowWidth != -1)
+            {
+                this.Top = SettingsManager.WindowTop;
+                this.Left = SettingsManager.WindowLeft;
+                this.Width = SettingsManager.WindowWidth;
+                this.Height = SettingsManager.WindowHeight;
+            }
 
             if (SettingsManager.RunAnimation)
             {
@@ -134,6 +135,11 @@ namespace ResxWriter
                 //if (!Utils.DoesShortcutExist(Environment.GetFolderPath(Environment.SpecialFolder.Programs), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name))
                 //    Utils.CreateApplicationShortcut(Environment.GetFolderPath(Environment.SpecialFolder.Programs), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name, true);
             }
+
+            //this.BackgroundImageLayout = ImageLayout.Stretch;
+            //this.BackgroundImage = Image.FromFile(Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "Background.png"));
+
+            //bool overlap = tbFilePath.CollidesWith(btnFileSelect);
         }
 
         /// <summary>
@@ -397,7 +403,18 @@ namespace ResxWriter
                     SettingsManager.WindowHeight = this.Height;
                     SettingsManager.WindowWidth = this.Width;
                 }
-                // Special chars do not store well in XML, so we have a logic check here for 0x09(HTAB).
+                /* 
+                  https://www.w3.org/TR/xml/#charsets
+                  Special chars do not store well in XML, so we have a logic check here for 0x09/HTAB.
+                  We could also use the escaped versions...
+                      NL = &#x0A;
+                      CR = &#x0D;
+                     TAB = &#x09;
+                   SPACE = &#x20;
+
+                 If viewing in a web browser, then sometimes it's helpful to use CDATA...
+                   <element><![CDATA[&#x09;]]></element>
+                */
                 SettingsManager.LastDelimiter = _userDelimiter.Equals("\t") ? "TAB" : _userDelimiter;
                 SettingsManager.WindowState = (int)this.WindowState;
                 SettingsManager.LastPath = tbFilePath.Text;
@@ -808,29 +825,40 @@ namespace ResxWriter
         /// </summary>
         /// <param name="lv"><see cref="ListView"/></param>
         /// <remarks>This is not a true transparent effect.</remarks>
-        public static void SetListViewBackground(ListView lv)
+        public static void SetListViewBackground(ListView lv, int x_offset = 8, int y_offset = 32)
         {
-            int alpha = 32;
-            Point p1 = lv.Parent.PointToScreen(lv.Location);
-            Point p2 = lv.PointToScreen(Point.Empty);
-            p2.Offset(-p1.X, -p1.Y);
-            if (lv.BackgroundImage != null)
-                lv.BackgroundImage.Dispose();
-            lv.Hide();
-            Bitmap bmp = new Bitmap(lv.Parent.Width, lv.Parent.Height);
-            lv.Parent.DrawToBitmap(bmp, lv.Parent.ClientRectangle);
-            Rectangle r = lv.Bounds;
-            r.Offset(p2.X, p2.Y);
-            bmp = bmp.Clone(r, PixelFormat.Format32bppArgb);
-            using (Graphics g = Graphics.FromImage(bmp))
+            try
             {
-                using (SolidBrush br = new SolidBrush(Color.FromArgb(alpha, lv.BackColor)))
+                int alpha = 32;
+                Point p1 = lv.Parent.PointToScreen(lv.Location);
+                Point p2 = lv.PointToScreen(Point.Empty);
+                p2.Offset(-p1.X, -p1.Y);
+                if (lv.BackgroundImage != null)
+                    lv.BackgroundImage.Dispose(); // remove previous image
+                lv.Hide();
+                Bitmap bmp = new Bitmap(lv.Parent.Width, lv.Parent.Height);
+                lv.Parent.DrawToBitmap(bmp, lv.Parent.ClientRectangle);
+                Rectangle r = lv.Bounds;
+                r.Offset(p2.X + x_offset, p2.Y + y_offset);
+                bmp = bmp.Clone(r, PixelFormat.Format32bppArgb);
+                using (Graphics g = Graphics.FromImage(bmp))
                 {
-                    g.FillRectangle(br, lv.ClientRectangle);
+                    using (SolidBrush br = new SolidBrush(Color.FromArgb(alpha, lv.BackColor)))
+                    {
+                        g.FillRectangle(br, lv.ClientRectangle);
+                    }
                 }
+                lv.BackgroundImage = bmp;
+                lv.Show();
             }
-            lv.BackgroundImage = bmp;
-            lv.Show();
+            catch (OutOfMemoryException) 
+            {
+                Debug.WriteLine($"[WARNING] Check your x_offset or y_offset values.");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ERROR] SetListViewBackground: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -861,7 +889,7 @@ namespace ResxWriter
                 if (File.Exists(path))
                 {
                     string argPath = string.Format("\"{0}\"", Application.ExecutablePath);
-                    string explorerText = $"Open using {Assembly.GetExecutingAssembly().GetName().Name}...";
+                    string explorerText = $"\"Open using {Assembly.GetExecutingAssembly().GetName().Name}...\"";
                     string args = string.Format("\"{0}\" {1} {2}", addToShell, argPath, explorerText);
                     Utils.AttemptPrivilegeEscalation(path, args, false);
                 }

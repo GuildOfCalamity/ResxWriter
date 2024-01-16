@@ -26,7 +26,7 @@ namespace ResxWriter
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            if (args.Length > 1)
+            if (args.Length > 1) // 1st arg is always the application path
                 Application.Run(new frmMain(args));
             else
                 Application.Run(new frmMain());
