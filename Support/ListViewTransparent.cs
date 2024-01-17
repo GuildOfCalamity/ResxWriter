@@ -13,6 +13,8 @@ namespace ResxWriter
     {
         public ListViewTransparent()
         {
+            //this.DrawMode = DrawMode.OwnerDrawFixed;
+
             // Set the control styles to support a transparent backcolor
             SetStyle(ControlStyles.SupportsTransparentBackColor, true);
             SetStyle(ControlStyles.Opaque, false);

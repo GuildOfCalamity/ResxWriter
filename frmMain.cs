@@ -29,6 +29,11 @@ namespace ResxWriter
         string _genericError = "An error was detected.";
         bool _useMeta = false;
         bool _closing = false;
+        System.Drawing.Font _font = new System.Drawing.Font("Calibri", 13);
+        System.Drawing.Pen _pen = new System.Drawing.Pen(System.Drawing.Color.Red, 2.0F);
+        System.Windows.Forms.ErrorProvider _pathErrorProvider;
+        DateTime _lastChange = DateTime.MinValue;
+        ValueStopwatch _vsw = ValueStopwatch.StartNew();
         #endregion
 
         #region [Animation]
@@ -64,10 +69,20 @@ namespace ResxWriter
         #region [Event Methods]
         void frmMain_Shown(object sender, EventArgs e)
         {
+            #region [Setup ErrorProvider for FilePath]
+            _pathErrorProvider = new System.Windows.Forms.ErrorProvider();
+            _pathErrorProvider.SetIconAlignment(this.tbFilePath, ErrorIconAlignment.MiddleLeft);
+            _pathErrorProvider.SetIconPadding(this.tbFilePath, 2);
+            _pathErrorProvider.BlinkRate = 450;
+            _pathErrorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
+            tbFilePath.Validating += new System.ComponentModel.CancelEventHandler(FilePathOnValidating);
+            tbFilePath.TextChanged += new System.EventHandler(FilePathOnTextChanged);
+            #endregion
+
             // Enable double buffering for the main form.
             this.DoubleBuffered = true;
 
-            UpdateStatus("Click the folder icon to select a file and then click import.");
+            UpdateStatusBar("Click the folder icon to select a file and then click import.");
             SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
 
             #region [Load settings]
@@ -140,6 +155,9 @@ namespace ResxWriter
             //this.BackgroundImage = Image.FromFile(Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "Background.png"));
 
             //bool overlap = tbFilePath.CollidesWith(btnFileSelect);
+
+            // Example of drawing using the the form's GDI drawing surface.
+            //this.Paint += new System.Windows.Forms.PaintEventHandler(MainFormOnPaint);
         }
 
         /// <summary>
@@ -219,7 +237,7 @@ namespace ResxWriter
                     }
                     catch (Exception ex)
                     {
-                        UpdateStatus(_genericError);
+                        UpdateStatusBar(_genericError);
                         Logger.Instance.Write($"Could not read the file: {ex.Message}", LogLevel.Error);
                         ShowMsgBoxError($"Could not read the file.\r\n{ex.Message}", "Error");
                     }
@@ -227,7 +245,7 @@ namespace ResxWriter
                 else
                 {
                     SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
-                    UpdateStatus("File selection was canceled.");
+                    UpdateStatusBar("File selection was canceled.");
                 }
             }
         }
@@ -246,7 +264,7 @@ namespace ResxWriter
 
                     //if (!File.Exists(textContentTextBox.Text))
                     //{
-                    //    UpdateStatus($"File does not exist, please check you path and try again.");
+                    //    UpdateStatusBar($"File does not exist, please check you path and try again.");
                     //    return;
                     //}
 
@@ -255,7 +273,7 @@ namespace ResxWriter
 
                     if (_userValues.Count > 0)
                     {
-                        UpdateStatus($"File data has been loaded.  {_userValues.Count} items total.");
+                        UpdateStatusBar($"File data has been loaded.  {_userValues.Count} items total.");
                         
                         if (_userValues.Count > 10)
                             tbContents.ScrollBars = ScrollBars.Vertical;
@@ -264,7 +282,7 @@ namespace ResxWriter
                     }
                     else
                     {
-                        UpdateStatus($"Check your input file and try again.");
+                        UpdateStatusBar($"Check your input file and try again.");
                         SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                     }
 
@@ -277,7 +295,7 @@ namespace ResxWriter
                 }
                 catch (Exception ex)
                 {
-                    UpdateStatus(_genericError);
+                    UpdateStatusBar(_genericError);
                     SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                     Logger.Instance.Write($"Could not read the file: {ex.Message}", LogLevel.Error);
                     ShowMsgBoxError($"Could not read the file.\r\n{ex.Message}", "Error");
@@ -286,7 +304,7 @@ namespace ResxWriter
             else
             {
                 SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
-                UpdateStatus("Import was canceled.");
+                UpdateStatusBar("Import was canceled.");
             }
         }
 
@@ -305,7 +323,7 @@ namespace ResxWriter
 
                 if (_userValues.Count == 0)
                 {
-                    UpdateStatus("Check that you have imported some valid data.");
+                    UpdateStatusBar("Check that you have imported some valid data.");
                     SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                     ShowMsgBoxError("No valid delimited values to work with from the provided file.", "Validation Error");
                     return;
@@ -331,26 +349,26 @@ namespace ResxWriter
                             }
                         }
 
-                        UpdateStatus("Resx file generated successfully.");
+                        UpdateStatusBar("Resx file generated successfully.");
                         Logger.Instance.Write($"Resx file generated successfully: \"{filePath}\" ({_userValues.Count} items).", LogLevel.Success);
                         //ShowMsgBoxSuccess("Resx file generated successfully.", "Success");
                     }
                     catch (XmlException ex) // Handle XML-related exceptions.
                     {
-                        UpdateStatus(_genericError);
+                        UpdateStatusBar(_genericError);
                         Logger.Instance.Write($"Could not generate the resx file: {ex.Message}", LogLevel.Error);
                         ShowMsgBoxError($"Could not generate the resx file.\r\n{ex.Message}", "XML Process Error");
                     }
                     catch (Exception ex)
                     {
-                        UpdateStatus(_genericError);
+                        UpdateStatusBar(_genericError);
                         Logger.Instance.Write($"Could not generate the resx file: {ex.Message}", LogLevel.Error);
                         ShowMsgBoxError($"Could not generate the resx file.\r\n{ex.Message}", "Process Error");
                     }
                 }
                 else
                 {
-                    UpdateStatus("Export was canceled.");
+                    UpdateStatusBar("Export was canceled.");
                 }
             }
         }
@@ -380,7 +398,7 @@ namespace ResxWriter
             if (!string.IsNullOrEmpty(cbDelimiters.Text))
             {
                 _userDelimiter = cbDelimiters.Text;
-                UpdateStatus($"Custom delimiter set to \"{_userDelimiter}\"");
+                UpdateStatusBar($"Custom delimiter set to \"{_userDelimiter}\"");
             }
         }
 
@@ -449,6 +467,68 @@ namespace ResxWriter
         }
 
         /// <summary>
+        /// When the text changes run our validation routine.
+        /// </summary>
+        void FilePathOnTextChanged(object sender, EventArgs e)
+        {
+            // There's some logic here to prevent hammering since
+            // the File.Exists() call may take a few milliseconds.
+            var diff = DateTime.Now - _lastChange;
+            if (diff.TotalMilliseconds >= 20)
+            {
+                _vsw = ValueStopwatch.StartNew();
+                if (!File.Exists(tbFilePath.Text))
+                {
+                    // Set the error with the text to display.
+                    _pathErrorProvider.SetError(tbFilePath, "Current file path does not exist.");
+                }
+                else
+                {
+                    // Clear the error.
+                    _pathErrorProvider.SetError(tbFilePath, String.Empty);
+                }
+                Debug.WriteLine($"FileCheck_ElapsedTime: {_vsw.GetElapsedTime().ToReadableString()}");
+            }
+            else // If a change happens too quickly we'll clear the error.
+            {
+                _pathErrorProvider.SetError(tbFilePath, String.Empty);
+            }
+            _lastChange = DateTime.Now;
+        }
+
+        /// <summary>
+        /// When you change the focus by using the mouse or by calling the 
+        /// Focus method, focus events occur in the following order:
+        ///  1.) Enter
+        ///  2.) GotFocus
+        ///  3.) LostFocus
+        ///  4.) Leave
+        ///  5.) Validating
+        ///  6.) Validated
+        /// https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.control.validating?view=windowsdesktop-8.0#remarks
+        /// </summary>
+        void FilePathOnValidating(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            var tb = sender as TextBox;
+            if (!File.Exists(tb.Text))
+            {
+                // Cancel the event.
+                //e.Cancel = true; // This will prevent further actions until the issue is corrected.
+                
+                // Select the text to be corrected.
+                tb.Select(0, tb.Text.Length);
+
+                // Set the error with the text to display. 
+                _pathErrorProvider.SetError(tb, "Current file path does not exist.");
+            }
+            else
+            {
+                // Clear the error.
+                _pathErrorProvider.SetError(tb, String.Empty);
+            }
+        }
+
+        /// <summary>
         /// No need to update animation if we're minimized.
         /// </summary>
         void frmMain_SizeChanged(object sender, EventArgs e)
@@ -457,6 +537,27 @@ namespace ResxWriter
                 _timer?.Stop();
             else if (_timer != null && !_timer.Enabled)
                 _timer?.Start();
+        }
+
+        /// <summary>
+        /// https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.control.paint?view=windowsdesktop-8.0
+        /// The Paint event is raised when the control is redrawn. It passes an instance of PaintEventArgs to the method(s)
+        /// that handles the Paint event. When creating a new custom control or an inherited control with a different visual
+        /// appearance, you must provide code to render the control by overriding the OnPaint method.
+        /// </summary>
+        void MainFormOnPaint(object sender, PaintEventArgs e)
+        {
+            var frm = sender as Form;
+            Graphics g = e.Graphics;
+
+            var x = cbDelimiters.Left + cbDelimiters.Width + 10;
+            var y = cbDelimiters.Top + 1;
+
+            // Draw message text.
+            g.DrawString("Rendering text using the form's GDI drawing surface.", _font, System.Drawing.Brushes.Wheat, new Point(x, y));
+            g.DrawEllipse(_pen, btnImport.Left + 2, btnImport.Top + 2, btnImport.Width - 4, btnImport.Height - 4);
+            g.DrawLine(_pen, btnImport.Left + 2, btnImport.Top + 2, btnImport.Right - 2, btnImport.Bottom - 2);
+            g.DrawLine(_pen, btnImport.Right - 2, btnImport.Top + 2, btnImport.Left + 2, btnImport.Bottom - 2);
         }
         #endregion
 
@@ -531,7 +632,7 @@ namespace ResxWriter
             }
             catch (Exception ex)
             {
-                UpdateStatus(_genericError);
+                UpdateStatusBar(_genericError);
                 ShowMsgBoxError($"Error reading the file.\r\n{ex.Message}", "Error");
             }
 
@@ -562,17 +663,17 @@ namespace ResxWriter
             }
             catch (XmlException ex) // Handle XML-related exceptions.
             {
-                UpdateStatus(_genericError);
+                UpdateStatusBar(_genericError);
                 ShowMsgBoxError($"Error reading the resx file.\r\n{ex.Message}", "XML Process Error");
             }
             catch (SystemException ex)
             {
-                UpdateStatus(_genericError);
+                UpdateStatusBar(_genericError);
                 ShowMsgBoxError($"Error reading the resx file.\r\n{ex.Message}", "System Process Error");
             }
             catch (Exception ex)
             {
-                UpdateStatus(_genericError);
+                UpdateStatusBar(_genericError);
                 ShowMsgBoxError($"Error reading the resx file.\r\n{ex.Message}", "Process Error");
             }
 
@@ -618,22 +719,15 @@ namespace ResxWriter
         }
 
         /// <summary>
-        /// Update the status label of the applications.
+        /// Update the status label of the application.
         /// </summary>
         /// <remarks>Thread safe method</remarks>
-        void UpdateStatus(string message)
+        void UpdateStatusBar(string message)
         {
-            try
+            stbStatus.InvokeIfRequired(() =>
             {
-                if (InvokeRequired)
-                    BeginInvoke(new Action(() => UpdateStatus(message)));
-                else
-                {
-                    statusTime.Text = $"{DateTime.Now.ToString("hh:mm:ss tt")}";
-                    statusText.Text = $"{message}";
-                }
-            }
-            catch (Exception) { }
+                sbStatusPanel.Text = message;
+            });
         }
 
         /// <summary>

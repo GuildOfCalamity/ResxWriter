@@ -342,11 +342,93 @@ namespace ResxWriter
             }
         }
 
+        /// <summary>
+        /// Similar to <see cref="GetReadableTime(TimeSpan)"/>.
+        /// </summary>
+        /// <param name="timeSpan"><see cref="TimeSpan"/></param>
+        /// <returns>formatted text</returns>
+        public static string ToReadableString(this TimeSpan span)
+        {
+            var parts = new StringBuilder();
+            if (span.Days > 0)
+                parts.Append($"{span.Days} day{(span.Days == 1 ? string.Empty : "s")} ");
+            if (span.Hours > 0)
+                parts.Append($"{span.Hours} hour{(span.Hours == 1 ? string.Empty : "s")} ");
+            if (span.Minutes > 0)
+                parts.Append($"{span.Minutes} minute{(span.Minutes == 1 ? string.Empty : "s")} ");
+            if (span.Seconds > 0)
+                parts.Append($"{span.Seconds} second{(span.Seconds == 1 ? string.Empty : "s")} ");
+            if (span.Milliseconds > 0)
+                parts.Append($"{span.Milliseconds} millisecond{(span.Milliseconds == 1 ? string.Empty : "s")} ");
+
+            if (parts.Length == 0) // result was less than 1 millisecond
+                return $"{span.TotalMilliseconds:N4} milliseconds";
+            else
+                return parts.ToString().Trim();
+        }
+
+        /// <summary>
+        /// Similar to <see cref="GetReadableTime(DateTime, bool)"/>.
+        /// </summary>
+        /// <param name="timeSpan"><see cref="TimeSpan"/></param>
+        /// <returns>formatted text</returns>
+        public static string GetReadableTime(this TimeSpan timeSpan)
+        {
+            var ts = new TimeSpan(DateTime.Now.Ticks - timeSpan.Ticks);
+            var totMinutes = ts.TotalSeconds / 60;
+            var totHours = ts.TotalSeconds / 3_600;
+            var totDays = ts.TotalSeconds / 86_400;
+            var totWeeks = ts.TotalSeconds / 604_800;
+            var totMonths = ts.TotalSeconds / 2_592_000;
+            var totYears = ts.TotalSeconds / 31_536_000;
+
+            var parts = new StringBuilder();
+            if (totYears > 0.1)
+                parts.Append($"{totYears:N1} years ");
+            if (totMonths > 0.1)
+                parts.Append($"{totMonths:N1} months ");
+            if (totWeeks > 0.1)
+                parts.Append($"{totWeeks:N1} weeks ");
+            if (totDays > 0.1)
+                parts.Append($"{totDays:N1} days ");
+            if (totHours > 0.1)
+                parts.Append($"{totHours:N1} hours ");
+            if (totMinutes > 0.1)
+                parts.Append($"{totMinutes:N1} minutes ");
+
+            return parts.ToString().Trim();
+        }
+
+        /// <summary>
+        /// Similar to <see cref="GetReadableTime(TimeSpan)"/>.
+        /// </summary>
+        /// <param name="timeSpan"><see cref="TimeSpan"/></param>
+        /// <returns>formatted text</returns>
+        public static string GetReadableTime(this DateTime dateTime, bool addMilliseconds = false)
+        {
+            var timeSpan = new TimeSpan(DateTime.Now.Ticks - dateTime.Ticks);
+            //double totalSecs = timeSpan.TotalSeconds;
+
+            var parts = new StringBuilder();
+            if (timeSpan.Days > 0)
+                parts.AppendFormat("{0} {1} ", timeSpan.Days, timeSpan.Days == 1 ? "day" : "days");
+            if (timeSpan.Hours > 0)
+                parts.AppendFormat("{0} {1} ", timeSpan.Hours, timeSpan.Hours == 1 ? "hour" : "hours");
+            if (timeSpan.Minutes > 0)
+                parts.AppendFormat("{0} {1} ", timeSpan.Minutes, timeSpan.Minutes == 1 ? "minute" : "minutes");
+            if (timeSpan.Seconds > 0)
+                parts.AppendFormat("{0} {1} ", timeSpan.Seconds, timeSpan.Seconds == 1 ? "second" : "seconds");
+            if (addMilliseconds && timeSpan.Milliseconds > 0)
+                parts.AppendFormat("{0} {1}", timeSpan.Milliseconds, timeSpan.Milliseconds == 1 ? "millisecond" : "milliseconds");
+
+            return parts.ToString().TrimEnd();
+        }
+
         #region [Shortcut Stuff]
         /// <summary>
-        /// Creates a shortcut (lnk file) using for the application.
+        /// Creates a shortcut (lnk file) used for the application.
         /// </summary>
-        /// <param name="location">Directory where the shortcut should be created.</param>
+        /// <param name="location">directory where the shortcut should be created</param>
         /// <param name="create">true to create shortcut, false to delete it</param>
         public static bool CreateApplicationShortcut(string location, string appName, bool create)
         {
@@ -447,9 +529,9 @@ namespace ResxWriter
         internal const int BCM_SETSHIELD = (BCM_FIRST + 0x000C); //Elevated button
 
         /// <summary>
-        /// Add the UAC shield to the given Button.
+        /// Add the UAC shield to the given <see cref="Button"/>.
         /// </summary>
-        /// <param name="b">Button to add shield</param>
+        /// <param name="b">the <see cref="Button"/> to add shield to</param>
         public static void AddShieldToButton(Button b)
         {
             if (IsWindowsVistaOrLater)// System.Environment.OSVersion.Version.Major >= 6)
@@ -460,9 +542,9 @@ namespace ResxWriter
         }
 
         /// <summary>
-        /// Removes the UAC shield from the given Button.
+        /// Removes the UAC shield from the given <see cref="Button"/>.
         /// </summary>
-        /// <param name="b">Button to remove shield</param>
+        /// <param name="b">the <see cref="Button"/> to remove shield from</param>
         public static void RemoveShieldFromButton(Button b)
         {
             if (IsWindowsVistaOrLater)// System.Environment.OSVersion.Version.Major >= 6)
@@ -491,9 +573,8 @@ namespace ResxWriter
             startInfo.FileName = path;
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
 
-            // Only do this for Vista+ since xp has an older runas dialog.
-            // If runas set to false will assume that the application has
-            // a manifest and so we don't need this.
+            // Only do this for Vista+ since XP has an older "runas" dialog. If runas set to
+            // false we'll assume that the application has a manifest and so we won't need this.
             if (IsWindowsVistaOrLater && runas)
                 startInfo.Verb = "runas"; // will bring up the UAC run-as menu when this ProcessStartInfo is used
 

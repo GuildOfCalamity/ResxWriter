@@ -65,12 +65,16 @@
       <DependentUpon>frmMessage.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
+    <Compile Include="Support\CustomStatusStrip.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Support\ListViewTransparent.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Support\Logger.cs" />
     <Compile Include="Support\SettingsManager.cs" />
     <Compile Include="Support\Utils.cs" />
+    <Compile Include="Support\ValueStopwatch.cs" />
     <EmbeddedResource Include="frmMain.resx">
       <DependentUpon>frmMain.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -88,9 +92,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <EmbeddedResource Include="Support\ListViewTransparent.resx">
-      <DependentUpon>ListViewTransparent.cs</DependentUpon>
-    </EmbeddedResource>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
