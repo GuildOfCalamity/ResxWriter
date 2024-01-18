@@ -34,7 +34,7 @@ namespace ResxWriter
             this.btnImport = new System.Windows.Forms.Button();
             this.tbFilePath = new System.Windows.Forms.TextBox();
             this.cbDelimiters = new System.Windows.Forms.ComboBox();
-            this.label1 = new System.Windows.Forms.Label();
+            this.lblDelims = new System.Windows.Forms.Label();
             this.cbMetadata = new System.Windows.Forms.CheckBox();
             this.btnFileSelect = new System.Windows.Forms.Button();
             this.tbContents = new System.Windows.Forms.TextBox();
@@ -45,6 +45,9 @@ namespace ResxWriter
             this.columnHeaderValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.stbStatus = new ResxWriter.CustomStatusStrip();
             this.sbStatusPanel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripSplitButton1 = new System.Windows.Forms.ToolStripSplitButton();
+            this.openSettingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openLogToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.stbStatus.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -92,17 +95,17 @@ namespace ResxWriter
             this.cbDelimiters.SelectedIndexChanged += new System.EventHandler(this.cbDelimiters_SelectedIndexChanged);
             this.cbDelimiters.TextUpdate += new System.EventHandler(this.cbDelimiters_TextUpdate);
             // 
-            // label1
+            // lblDelims
             // 
-            this.label1.AutoSize = true;
-            this.label1.BackColor = System.Drawing.Color.Transparent;
-            this.label1.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.ForeColor = System.Drawing.Color.White;
-            this.label1.Location = new System.Drawing.Point(185, 58);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(124, 19);
-            this.label1.TabIndex = 5;
-            this.label1.Text = "Column delimiter:";
+            this.lblDelims.AutoSize = true;
+            this.lblDelims.BackColor = System.Drawing.Color.Transparent;
+            this.lblDelims.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblDelims.ForeColor = System.Drawing.Color.White;
+            this.lblDelims.Location = new System.Drawing.Point(185, 58);
+            this.lblDelims.Name = "lblDelims";
+            this.lblDelims.Size = new System.Drawing.Size(124, 19);
+            this.lblDelims.TabIndex = 5;
+            this.lblDelims.Text = "Column delimiter:";
             // 
             // cbMetadata
             // 
@@ -166,7 +169,7 @@ namespace ResxWriter
             this.btnGenerateResx.FlatAppearance.MouseOverBackColor = System.Drawing.Color.SteelBlue;
             this.btnGenerateResx.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnGenerateResx.Image = ((System.Drawing.Image)(resources.GetObject("btnGenerateResx.Image")));
-            this.btnGenerateResx.Location = new System.Drawing.Point(22, 406);
+            this.btnGenerateResx.Location = new System.Drawing.Point(22, 402);
             this.btnGenerateResx.Margin = new System.Windows.Forms.Padding(0);
             this.btnGenerateResx.Name = "btnGenerateResx";
             this.btnGenerateResx.Padding = new System.Windows.Forms.Padding(0, 0, 5, 5);
@@ -183,7 +186,7 @@ namespace ResxWriter
             this.btnExit.FlatAppearance.MouseOverBackColor = System.Drawing.Color.SteelBlue;
             this.btnExit.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnExit.Image = ((System.Drawing.Image)(resources.GetObject("btnExit.Image")));
-            this.btnExit.Location = new System.Drawing.Point(754, 406);
+            this.btnExit.Location = new System.Drawing.Point(754, 402);
             this.btnExit.Margin = new System.Windows.Forms.Padding(0);
             this.btnExit.Name = "btnExit";
             this.btnExit.Padding = new System.Windows.Forms.Padding(0, 0, 5, 5);
@@ -226,27 +229,61 @@ namespace ResxWriter
             // 
             // stbStatus
             // 
+            this.stbStatus.AutoSize = false;
             this.stbStatus.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(20)))));
             this.stbStatus.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.stbStatus.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
             this.stbStatus.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.sbStatusPanel});
-            this.stbStatus.Location = new System.Drawing.Point(0, 503);
+            this.sbStatusPanel,
+            this.toolStripSplitButton1});
+            this.stbStatus.Location = new System.Drawing.Point(0, 496);
             this.stbStatus.Name = "stbStatus";
-            this.stbStatus.Size = new System.Drawing.Size(896, 22);
+            this.stbStatus.Size = new System.Drawing.Size(896, 29);
             this.stbStatus.TabIndex = 13;
             this.stbStatus.Text = "status";
             // 
             // sbStatusPanel
             // 
+            this.sbStatusPanel.AutoSize = false;
             this.sbStatusPanel.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.sbStatusPanel.DoubleClickEnabled = true;
             this.sbStatusPanel.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.sbStatusPanel.ForeColor = System.Drawing.Color.WhiteSmoke;
+            this.sbStatusPanel.Image = global::ResxWriter.Properties.Resources.App_Icon_png;
+            this.sbStatusPanel.Margin = new System.Windows.Forms.Padding(2, 3, 5, 2);
             this.sbStatusPanel.Name = "sbStatusPanel";
             this.sbStatusPanel.Padding = new System.Windows.Forms.Padding(4);
-            this.sbStatusPanel.Size = new System.Drawing.Size(8, 17);
+            this.sbStatusPanel.Size = new System.Drawing.Size(780, 24);
             this.sbStatusPanel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // toolStripSplitButton1
+            // 
+            this.toolStripSplitButton1.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
+            this.toolStripSplitButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButton1.DropDownButtonWidth = 14;
+            this.toolStripSplitButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.openSettingsToolStripMenuItem, this.openLogToolStripMenuItem});
+            this.toolStripSplitButton1.Image = global::ResxWriter.Properties.Resources.App_Settings;
+            this.toolStripSplitButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripSplitButton1.Margin = new System.Windows.Forms.Padding(5, 2, 0, 0);
+            this.toolStripSplitButton1.Name = "toolStripSplitButton1";
+            this.toolStripSplitButton1.Size = new System.Drawing.Size(35, 27);
+            // 
+            // openSettingsToolStripMenuItem
+            // 
+            this.openSettingsToolStripMenuItem.BackColor = System.Drawing.Color.DarkGray;
+            this.openSettingsToolStripMenuItem.ForeColor = System.Drawing.Color.WhiteSmoke;
+            this.openSettingsToolStripMenuItem.Name = "openSettingsToolStripMenuItem";
+            this.openSettingsToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
+            this.openSettingsToolStripMenuItem.Text = "Open Settings";
+            // 
+            // openLogToolStripMenuItem
+            // 
+            this.openLogToolStripMenuItem.BackColor = System.Drawing.Color.DarkGray;
+            this.openLogToolStripMenuItem.ForeColor = System.Drawing.Color.WhiteSmoke;
+            this.openLogToolStripMenuItem.Name = "openLogToolStripMenuItem";
+            this.openLogToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
+            this.openLogToolStripMenuItem.Text = "Open Log";
             // 
             // frmMain
             // 
@@ -262,7 +299,7 @@ namespace ResxWriter
             this.Controls.Add(this.tbContents);
             this.Controls.Add(this.btnFileSelect);
             this.Controls.Add(this.cbMetadata);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.lblDelims);
             this.Controls.Add(this.cbDelimiters);
             this.Controls.Add(this.tbFilePath);
             this.Controls.Add(this.btnImport);
@@ -289,7 +326,7 @@ namespace ResxWriter
         private System.Windows.Forms.Button btnImport;
         private System.Windows.Forms.TextBox tbFilePath;
         private System.Windows.Forms.ComboBox cbDelimiters;
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label lblDelims;
         private System.Windows.Forms.CheckBox cbMetadata;
         private System.Windows.Forms.Button btnFileSelect;
         private System.Windows.Forms.TextBox tbContents;
@@ -301,6 +338,9 @@ namespace ResxWriter
         private System.Windows.Forms.ColumnHeader columnHeaderValue;
         private CustomStatusStrip stbStatus;
         private ToolStripStatusLabel sbStatusPanel;
+        private ToolStripSplitButton toolStripSplitButton1;
+        private ToolStripMenuItem openLogToolStripMenuItem;
+        private ToolStripMenuItem openSettingsToolStripMenuItem;
     }
 }
 

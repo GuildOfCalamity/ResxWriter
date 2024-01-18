@@ -270,6 +270,8 @@ namespace ResxWriter
             }
         }
 
+        public FileInfo SetExtension(FileInfo fileInfo, string extension) => new FileInfo(Path.ChangeExtension(fileInfo.FullName, extension));
+
         /// <summary>
         /// Debug method (can be removed)
         /// </summary>

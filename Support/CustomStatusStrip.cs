@@ -1,14 +1,21 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ResxWriter
 {
-    public class CustomStatusStrip : StatusStrip
+    public partial class CustomStatusStrip : StatusStrip
     {
         #region [Props]
-        Color _background = Color.FromArgb(20,20,20);
+        Color _background = Color.FromArgb(20, 20, 20);
         Color _foreground = Color.FromArgb(250, 250, 250);
-        Pen _pen1 = new Pen(Color.FromArgb(156, 156, 156), 2.0F);
+        Pen _pen1 = new Pen(Color.FromArgb(170, 170, 170), 2.0F);
         Pen _pen2 = new Pen(Color.FromArgb(56, 56, 56), 2.0F);
         #endregion
 

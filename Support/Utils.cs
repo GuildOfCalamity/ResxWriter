@@ -9,7 +9,10 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
 using System.Windows.Forms;
+using System.Xml;
 
 namespace ResxWriter
 {
@@ -123,6 +126,9 @@ namespace ResxWriter
         /// </remarks>
         public static void InvokeIfRequired(this ISynchronizeInvoke obj, System.Windows.Forms.MethodInvoker action)
         {
+            if (obj == null)
+                return;
+
             if (obj.InvokeRequired)
             {
                 var args = new object[0];
@@ -136,6 +142,26 @@ namespace ResxWriter
             {
                 action();
             }
+        }
+
+        public static bool BytewiseCompare(this System.Drawing.Image img1, System.Drawing.Image img2)
+        {
+            var i1bytes = new byte[1];
+            i1bytes = (byte[])(new ImageConverter()).ConvertTo(img1, i1bytes.GetType());
+
+            var i2bytes = new byte[1];
+            i2bytes = (byte[])(new ImageConverter()).ConvertTo(img2, i2bytes.GetType());
+
+            if (i1bytes.Length != i2bytes.Length)
+                return false; // difference found
+
+            for (int i = 0; i < i1bytes.Length; i++)
+            {
+                if (i1bytes[i] != i2bytes[i])
+                    return false; // difference found
+            }
+           
+            return true; // no differences found
         }
 
         /// <summary>
@@ -343,6 +369,35 @@ namespace ResxWriter
         }
 
         /// <summary>
+        /// Uses <see cref="XmlWriter"/> and <see cref="XmlWriterSettings"/> to create formatted output.
+        /// </summary>
+        /// <param name="xmlString">input XML</param>
+        /// <returns>formatted XML</returns>
+        public static string FormatXml(string xmlString)
+        {
+            try
+            {
+                var stringBuilder = new StringBuilder();
+                var element = System.Xml.Linq.XElement.Parse(xmlString);
+                var settings = new XmlWriterSettings();
+                settings.NewLineOnAttributes = true;
+                settings.OmitXmlDeclaration = true;
+                settings.Indent = true;
+                // XmlWriter offers a StringBuilder as an output target.
+                using (var xmlWriter = XmlWriter.Create(stringBuilder, settings))
+                {
+                    element.Save(xmlWriter);
+                }
+                return stringBuilder.ToString();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"FormatXml: {ex.Message}");
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
         /// Similar to <see cref="GetReadableTime(TimeSpan)"/>.
         /// </summary>
         /// <param name="timeSpan"><see cref="TimeSpan"/></param>
@@ -362,7 +417,7 @@ namespace ResxWriter
                 parts.Append($"{span.Milliseconds} millisecond{(span.Milliseconds == 1 ? string.Empty : "s")} ");
 
             if (parts.Length == 0) // result was less than 1 millisecond
-                return $"{span.TotalMilliseconds:N4} milliseconds";
+                return $"{span.TotalMilliseconds:N4} milliseconds"; // similar to span.Ticks
             else
                 return parts.ToString().Trim();
         }
@@ -423,6 +478,360 @@ namespace ResxWriter
 
             return parts.ToString().TrimEnd();
         }
+
+        public static TimeSpan Multiply(this TimeSpan timeSpan, double scalar) => new TimeSpan((long)(timeSpan.Ticks * scalar));
+
+        public static bool Between(this DateTime dt, DateTime rangeBeg, DateTime rangeEnd) => dt.Ticks >= rangeBeg.Ticks && dt.Ticks <= rangeEnd.Ticks;
+
+        public static int GetDecimalPlacesCount(this string valueString) => valueString.SkipWhile(c => c.ToString(System.Globalization.CultureInfo.CurrentCulture) != System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator).Skip(1).Count();
+
+        public static string RemoveDiacritics(this string str)
+        {
+            if (str == null)
+                return string.Empty;
+
+            var sb = new StringBuilder();
+            foreach (char c in str.Normalize(NormalizationForm.FormD))
+            {
+                if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+                    sb.Append(c);
+            }
+            return sb.ToString();
+        }
+
+        public static void ForEach<T>(this IEnumerable<T> ie, Action<T> action)
+        {
+            foreach (var i in ie)
+                action(i);
+        }
+
+        public static string NameOf(this object obj)
+        {
+            return $"{obj.GetType().Name} --> {obj.GetType().BaseType.Name}";
+            // Similar: System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.Name
+        }
+
+        public static bool IsDisposable(this Type type)
+        {
+            return (!typeof(IDisposable).IsAssignableFrom(type)) ? false : true;
+        }
+
+        public static bool IsClonable(this Type type)
+        {
+            return (!typeof(ICloneable).IsAssignableFrom(type)) ? false : true;
+        }
+
+        public static bool IsComparable(this Type type)
+        {
+            return (!typeof(IComparable).IsAssignableFrom(type)) ? false : true;
+        }
+
+        public static bool IsConvertible(this Type type)
+        {
+            return (!typeof(IConvertible).IsAssignableFrom(type)) ? false : true;
+        }
+
+        public static bool IsFormattable(this Type type)
+        {
+            return (!typeof(IFormattable).IsAssignableFrom(type)) ? false : true;
+        }
+
+        /// <summary>
+        /// You could also use the Thread.IsAlive bool.
+        /// </summary>
+        /// <param name="ts"><see cref="System.Threading.ThreadState"/></param>
+        /// <returns>true if running, false otherwise</returns>
+        public static bool IsRunning(this System.Threading.ThreadState ts)
+        {
+            if (ts != System.Threading.ThreadState.Stopped && ts != System.Threading.ThreadState.Aborted && ts != System.Threading.ThreadState.Suspended)
+                return true;
+            else
+                return false;
+        }
+
+        public static Stream ToStream(this string str)
+        {
+            byte[] byteArray = Encoding.UTF8.GetBytes(str);
+            return new MemoryStream(byteArray);
+        }
+
+        public static string ToString(this Stream stream)
+        {
+            StreamReader reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        }
+
+        /// <summary>
+        /// <para>Creates a log-string from the Exception.</para>
+        /// <para>The result includes the stacktrace, innerexception et cetera, separated by <see cref="Environment.NewLine"/>.</para>
+        /// </summary>
+        /// <param name="ex">The exception to create the string from.</param>
+        /// <param name="additionalMessage">Additional message to place at the top of the string, maybe be empty or null.</param>
+        /// <returns>formatted string</returns>
+        public static string ToLogString(this Exception ex, string additionalMessage = "")
+        {
+            System.Text.StringBuilder msg = new System.Text.StringBuilder();
+
+            if (!string.IsNullOrEmpty(additionalMessage))
+            {
+                msg.Append($"---[{additionalMessage}]---");
+                msg.Append(Environment.NewLine);
+            }
+            else
+            {
+                msg.Append($"---[{DateTime.Now.ToString("hh:mm:ss.fff tt")}]---");
+                msg.Append(Environment.NewLine);
+            }
+
+            if (ex != null)
+            {
+                try
+                {
+                    Exception orgEx = ex;
+                    msg.Append("[Exception]: ");
+                    while (orgEx != null)
+                    {
+                        msg.Append(orgEx.Message);
+                        msg.Append(Environment.NewLine);
+                        orgEx = orgEx.InnerException;
+                    }
+
+                    if (ex.Source != null)
+                    {
+                        msg.Append("[Source]: ");
+                        msg.Append(ex.Source);
+                        msg.Append(Environment.NewLine);
+                    }
+
+                    if (ex.Data != null)
+                    {
+                        foreach (object i in ex.Data)
+                        {
+                            msg.Append("[Data]: ");
+                            msg.Append(i.ToString());
+                            msg.Append(Environment.NewLine);
+                        }
+                    }
+
+                    if (ex.StackTrace != null)
+                    {
+                        msg.Append("[StackTrace]: ");
+                        msg.Append(ex.StackTrace.ToString());
+                        msg.Append(Environment.NewLine);
+                    }
+
+                    if (ex.TargetSite != null)
+                    {
+                        msg.Append("[TargetSite]: ");
+                        msg.Append(ex.TargetSite.ToString());
+                        msg.Append(Environment.NewLine);
+                    }
+
+                    Exception baseException = ex.GetBaseException();
+                    if (baseException != null)
+                    {
+                        msg.Append("[BaseException]: ");
+                        msg.Append(ex.GetBaseException());
+                    }
+                }
+                catch (Exception iex) { Console.WriteLine($"ToLogString: {iex.Message}"); }
+            }
+            return msg.ToString();
+        }
+
+        public static char CharAt(this string s, int index)
+        {
+            if (index < s.Length)
+                return s[index];
+
+            return '\0';
+        }
+
+        /// <summary>
+        /// Convert number to bytes size notation
+        /// </summary>
+        /// <param name="size">bytes</param>
+        /// <returns>formatted string</returns>
+        public static string ToFileSize(this long size)
+        {
+            if (size < 1024) { return (size).ToString("F0") + " Bytes"; }
+            if (size < Math.Pow(1024, 2)) { return (size / 1024).ToString("F0") + " KB"; }
+            if (size < Math.Pow(1024, 3)) { return (size / Math.Pow(1024, 2)).ToString("F2") + " MB"; }
+            if (size < Math.Pow(1024, 4)) { return (size / Math.Pow(1024, 3)).ToString("F3") + " GB"; }
+            if (size < Math.Pow(1024, 5)) { return (size / Math.Pow(1024, 4)).ToString("F3") + " TB"; }
+            if (size < Math.Pow(1024, 6)) { return (size / Math.Pow(1024, 5)).ToString("F3") + " PB"; }
+            return (size / Math.Pow(1024, 6)).ToString("F3") + " EB";
+        }
+
+        public static bool IsInvalidFileNameChar(this Char c) => c < 64U ? (1UL << c & 0xD4008404FFFFFFFFUL) != 0 : c == '\\' || c == '|';
+        public static bool FilePathHasInvalidChars(this string path) => (!string.IsNullOrEmpty(path) && path.IndexOfAny(System.IO.Path.GetInvalidPathChars()) >= 0);
+        public static string RemoveInvalidCharacters(this string path) => Path.GetInvalidFileNameChars().Aggregate(path, (current, c) => current.Replace(c.ToString(), string.Empty));
+        public static string SanitizeFilePath(this string path)
+        {
+            if (!string.IsNullOrEmpty(path))
+            {
+                while (path.IndexOfAny(System.IO.Path.GetInvalidPathChars()) >= 0)
+                {
+                    int idx = path.IndexOfAny(System.IO.Path.GetInvalidPathChars());
+                    path = path.Remove(idx, 1).Insert(idx, string.Empty);
+                }
+                return path;
+            }
+            else
+            {
+                return path;
+            }
+        }
+
+        /// <summary>
+        /// Open with default 'open' program
+        /// new FileInfo("C:\image.jpg").Open();
+        /// </summary>
+        /// <param name="value"></param>
+        public static Process OpenFile(this FileInfo value)
+        {
+            if (!value.Exists)
+                throw new FileNotFoundException("File doesn't exist");
+            Process p = new Process();
+            p.StartInfo.FileName = value.FullName;
+            p.StartInfo.Verb = "Open";
+            p.Start();
+            return p;
+        }
+
+        #region [Task Helpers]
+        /// <summary>
+        /// Task.Factory.StartNew (() => { throw null; }).IgnoreExceptions();
+        /// </summary>
+        public static void IgnoreExceptions(this Task task, bool logEx = false)
+        {
+            task.ContinueWith(t =>
+            {
+                AggregateException ignore = t.Exception;
+
+                ignore?.Flatten().Handle(ex =>
+                {
+                    if (logEx)
+                        Debug.WriteLine("Exception type: {0}\r\nException Message: {1}", ex.GetType(), ex.Message);
+                    return true; // don't re-throw
+                });
+
+            }, TaskContinuationOptions.OnlyOnFaulted);
+        }
+
+        /// <summary>
+        /// Chainable task helper.
+        /// var result = await SomeLongAsyncFunction().WithTimeout(TimeSpan.FromSeconds(2));
+        /// </summary>
+        /// <typeparam name="TResult">the type of task result</typeparam>
+        /// <returns><see cref="Task"/>TResult</returns>
+        public async static Task<TResult> WithTimeout<TResult>(this Task<TResult> task, TimeSpan timeout)
+        {
+            Task winner = await (Task.WhenAny(task, Task.Delay(timeout)));
+
+            if (winner != task)
+                throw new TimeoutException();
+
+            return await task;   // Unwrap result/re-throw
+        }
+
+        /// <summary>
+        /// Task extension to add a timeout.
+        /// </summary>
+        /// <returns>The task with timeout.</returns>
+        /// <param name="task">Task.</param>
+        /// <param name="timeoutInMilliseconds">Timeout duration in Milliseconds.</param>
+        /// <typeparam name="T">The 1st type parameter.</typeparam>
+        public async static Task<T> WithTimeout<T>(this Task<T> task, int timeoutInMilliseconds)
+        {
+            var retTask = await Task.WhenAny(task, Task.Delay(timeoutInMilliseconds))
+                .ConfigureAwait(false);
+
+            #pragma warning disable CS8603 // Possible null reference return.
+            return retTask is Task<T> ? task.Result : default;
+            #pragma warning restore CS8603 // Possible null reference return.
+        }
+
+        /// <summary>
+        /// Chainable task helper.
+        /// var result = await SomeLongAsyncFunction().WithCancellation(cts.Token);
+        /// </summary>
+        /// <typeparam name="TResult">the type of task result</typeparam>
+        /// <returns><see cref="Task"/>TResult</returns>
+        public static Task<TResult> WithCancellation<TResult>(this Task<TResult> task, CancellationToken cancelToken)
+        {
+            TaskCompletionSource<TResult> tcs = new TaskCompletionSource<TResult>();
+            CancellationTokenRegistration reg = cancelToken.Register(() => tcs.TrySetCanceled());
+            task.ContinueWith(ant =>
+            {
+                reg.Dispose(); // NOTE: it's important to dispose of CancellationTokenRegistrations or they will hang around in memory until the application closes
+                if (ant.IsCanceled)
+                    tcs.TrySetCanceled();
+                else if (ant.IsFaulted)
+                    tcs.TrySetException(ant.Exception.InnerException);
+                else
+                    tcs.TrySetResult(ant.Result);
+            });
+            return tcs.Task;  // Return the TaskCompletionSource result
+        }
+
+        public static Task<T> WithAllExceptions<T>(this Task<T> task)
+        {
+            TaskCompletionSource<T> tcs = new TaskCompletionSource<T>();
+
+            task.ContinueWith(ignored =>
+            {
+                switch (task.Status)
+                {
+                    case TaskStatus.Canceled:
+                        Debug.WriteLine($"[TaskStatus.Canceled]");
+                        tcs.SetCanceled();
+                        break;
+                    case TaskStatus.RanToCompletion:
+                        tcs.SetResult(task.Result);
+                        //Debug.WriteLine($"[TaskStatus.RanToCompletion({task.Result})]");
+                        break;
+                    case TaskStatus.Faulted:
+                        // SetException will automatically wrap the original AggregateException
+                        // in another one. The new wrapper will be removed in TaskAwaiter, leaving
+                        // the original intact.
+                        Debug.WriteLine($"[TaskStatus.Faulted]: {task.Exception.Message}");
+                        tcs.SetException(task.Exception);
+                        break;
+                    default:
+                        Debug.WriteLine($"[TaskStatus: Continuation called illegally.]");
+                        tcs.SetException(new InvalidOperationException("Continuation called illegally."));
+                        break;
+                }
+            });
+
+            return tcs.Task;
+        }
+
+        #pragma warning disable RECS0165 // Asynchronous methods should return a Task instead of void
+        /// <summary>
+        /// Attempts to await on the task and catches exception
+        /// </summary>
+        /// <param name="task">Task to execute</param>
+        /// <param name="onException">What to do when method has an exception</param>
+        /// <param name="continueOnCapturedContext">If the context should be captured.</param>
+        public static async void SafeFireAndForget(this Task task, Action<Exception> onException = null, bool continueOnCapturedContext = false)
+        #pragma warning restore RECS0165 // Asynchronous methods should return a Task instead of void
+        {
+            try
+            {
+                await task.ConfigureAwait(continueOnCapturedContext);
+            }
+            catch (Exception ex) when (onException != null)
+            {
+                onException.Invoke(ex);
+            }
+            catch (Exception ex) when (onException == null)
+            {
+                Console.WriteLine($"SafeFireAndForget: {ex.Message}");
+            }
+        }
+        #endregion
 
         #region [Shortcut Stuff]
         /// <summary>

@@ -69,6 +69,30 @@ namespace ResxWriter
         #region [Event Methods]
         void frmMain_Shown(object sender, EventArgs e)
         {
+            #region [Setup Tool Strip Menu Items]
+
+            // The background color will not apply correctly, so we'll use this trick as a workaround.
+            openLogToolStripMenuItem.BackgroundImage = ResxWriter.Properties.Resources.SB_Background;
+            openLogToolStripMenuItem.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+            openSettingsToolStripMenuItem.BackgroundImage = ResxWriter.Properties.Resources.SB_Background;
+            openSettingsToolStripMenuItem.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+
+            // Configure left side image for log.
+            openLogToolStripMenuItem.DisplayStyle = ToolStripItemDisplayStyle.ImageAndText;
+            openLogToolStripMenuItem.Image = ResxWriter.Properties.Resources.SB_DotOff;
+            openLogToolStripMenuItem.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
+
+            // Configure left side image for settings.
+            openSettingsToolStripMenuItem.DisplayStyle = ToolStripItemDisplayStyle.ImageAndText;
+            openSettingsToolStripMenuItem.Image = ResxWriter.Properties.Resources.SB_DotOff;
+            openSettingsToolStripMenuItem.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
+
+            // Configure click events.
+            toolStripSplitButton1.Click += new System.EventHandler(toolStripSplitButton_Click);
+            openLogToolStripMenuItem.Click += new System.EventHandler(openLogToolStripMenuItem_Click);
+            openSettingsToolStripMenuItem.Click += new System.EventHandler(openSettingsToolStripMenuItem_Click);
+            #endregion
+
             #region [Setup ErrorProvider for FilePath]
             _pathErrorProvider = new System.Windows.Forms.ErrorProvider();
             _pathErrorProvider.SetIconAlignment(this.tbFilePath, ErrorIconAlignment.MiddleLeft);
@@ -158,6 +182,8 @@ namespace ResxWriter
 
             // Example of drawing using the the form's GDI drawing surface.
             //this.Paint += new System.Windows.Forms.PaintEventHandler(MainFormOnPaint);
+
+            //UpdateStatusBar("[INFO] Some super long text to test margins and justification settings in the application so we can see where any issues might be with regards to visuals.");
         }
 
         /// <summary>
@@ -531,12 +557,95 @@ namespace ResxWriter
         /// <summary>
         /// No need to update animation if we're minimized.
         /// </summary>
+        /// <remarks>
+        /// This event will fire twice upon startup.
+        /// </remarks>
         void frmMain_SizeChanged(object sender, EventArgs e)
         {
             if (_timer != null && _timer.Enabled && this.WindowState == FormWindowState.Minimized)
                 _timer?.Stop();
-            else if (_timer != null && !_timer.Enabled)
+            else if (_timer != null && !_timer.Enabled && SettingsManager.RunAnimation)
                 _timer?.Start();
+
+            // The justification offered from the designer does not work the way we want, so
+            // we'll use this to keep our ToolStripSplitButton right-justified on the status bar.
+            if (this.WindowState != FormWindowState.Minimized)
+            {
+                int sideBuffer = 80;
+                var frm = sender as Form;
+                var newWidth = frm.Width - sideBuffer;
+                if (newWidth > sideBuffer)
+                    sbStatusPanel.Width = newWidth;
+            }
+        }
+
+        /// <summary>
+        /// <see cref="ToolStripMenuItem"/> for opening the log file.
+        /// </summary>
+        void openLogToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var tsmi = sender as ToolStripMenuItem;
+            try
+            {
+                // Don't re-enter if already active.
+                if (tsmi.Image.BytewiseCompare(ResxWriter.Properties.Resources.SB_DotOn))
+                    return;
+
+                // Update the image to indicate the process is in use.
+                UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOn);
+
+                var p = Process.Start(Logger.Instance.LogPath);
+
+                // This was not reliable.
+                //p.Exited += (po, pe) => { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; };
+
+                Task.Run(() =>
+                {
+                    while (!p.HasExited && !_closing) { Thread.Sleep(400); }
+                    UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOff);
+                });
+            }
+            catch (Exception) { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; }
+        }
+
+        /// <summary>
+        /// <see cref="ToolStripMenuItem"/> for opening the settings file.
+        /// </summary>
+        void openSettingsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var tsmi = sender as ToolStripMenuItem;
+            try
+            {
+                // Don't re-enter if already active.
+                if (tsmi.Image.BytewiseCompare(ResxWriter.Properties.Resources.SB_DotOn))
+                    return;
+
+                // Update the image to indicate the process is in use.
+                UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOn);
+
+                var p = Process.Start(SettingsManager.Location);
+
+                // This was not reliable.
+                //p.Exited += (po, pe) => { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; };
+
+                Task.Run(() =>
+                {
+                    while (!p.HasExited && !_closing) { Thread.Sleep(400); }
+                    UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOff);
+                });
+            }
+            catch (Exception) { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; }
+        }
+
+
+        /// <summary>
+        /// This is the event for the tool strip button when clicked.
+        /// This happens when the dropdown arrow is clicked or the main button is clicked.
+        /// We will ignore this event since we want the user to select an item from the menu.
+        /// </summary>
+        void toolStripSplitButton_Click(object sender, EventArgs e)
+        {
+            Debug.WriteLine("[INFO] ToolStripSplitButton Clicked");
         }
 
         /// <summary>
@@ -547,9 +656,10 @@ namespace ResxWriter
         /// </summary>
         void MainFormOnPaint(object sender, PaintEventArgs e)
         {
-            var frm = sender as Form;
+            //var frm = sender as Form;
             Graphics g = e.Graphics;
 
+            // Place the text to the right of the ComboBox control.
             var x = cbDelimiters.Left + cbDelimiters.Width + 10;
             var y = cbDelimiters.Top + 1;
 
@@ -787,6 +897,24 @@ namespace ResxWriter
             {
                 btn.Image = img;
                 btn.Refresh(); //btn.Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Sets the <see cref="ToolStripMenuItem"/>'s Image property.
+        /// </summary>
+        /// <param name="mi"><see cref="ToolStripMenuItem"/></param>
+        /// <param name="img"><see cref="Bitmap"></param>
+        /// <remarks>Thread safe method</remarks>
+        public void UpdateMenuItemImage(ToolStripMenuItem mi, Bitmap img)
+        {
+            if (InvokeRequired)
+                BeginInvoke(new Action(() => UpdateMenuItemImage(mi, img)));
+            else
+            {
+                mi.Image = img;
+                //this.Refresh();
+                //mi.Invalidate();
             }
         }
 

@@ -52,6 +52,12 @@
     <Compile Include="AssemblyInfo.cs">
       <Link>Properties\AssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Support\CustomStatusStrip.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Support\CustomStatusStrip.Designer.cs">
+      <DependentUpon>CustomStatusStrip.cs</DependentUpon>
+    </Compile>
     <Compile Include="frmMain.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -65,9 +71,6 @@
       <DependentUpon>frmMessage.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
-    <Compile Include="Support\CustomStatusStrip.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Include="Support\ListViewTransparent.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -109,6 +112,7 @@
     <Content Include="App_Icon.ico" />
     <Content Include="Assets\App_Icon.ico" />
     <Content Include="Assets\App_Icon.png" />
+    <Content Include="Assets\App_Settings.png" />
     <Content Include="Assets\Button01.png" />
     <Content Include="Assets\Button02.png" />
     <Content Include="Assets\Button03.png" />
@@ -116,6 +120,11 @@
     <Content Include="Assets\MB_Info.png" />
     <Content Include="Assets\MB_Success.png" />
     <Content Include="Assets\MB_Warning.png" />
+    <Content Include="Assets\SB_Background.png" />
+    <Content Include="Assets\SB_BlueOff.png" />
+    <Content Include="Assets\SB_BlueOn.png" />
+    <Content Include="Assets\SB_DotOff.png" />
+    <Content Include="Assets\SB_DotOn.png" />
     <Content Include="Assets\ScreenShot.png" />
     <None Include="README.md" />
     <Content Include="SampleData\de-DE.txt">
