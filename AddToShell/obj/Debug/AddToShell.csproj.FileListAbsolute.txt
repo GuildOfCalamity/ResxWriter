@@ -1,7 +1,0 @@
-D:\source\repos\ResxWriter\AddToShell\bin\Debug\AddToShell.exe.config
-D:\source\repos\ResxWriter\AddToShell\bin\Debug\AddToShell.exe
-D:\source\repos\ResxWriter\AddToShell\bin\Debug\AddToShell.pdb
-D:\source\repos\ResxWriter\AddToShell\obj\Debug\AddToShell.csproj.AssemblyReference.cache
-D:\source\repos\ResxWriter\AddToShell\obj\Debug\AddToShell.csproj.CoreCompileInputs.cache
-D:\source\repos\ResxWriter\AddToShell\obj\Debug\AddToShell.exe
-D:\source\repos\ResxWriter\AddToShell\obj\Debug\AddToShell.pdb
