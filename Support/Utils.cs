@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Windows.Forms;
 using System.Xml;
+using System.Reflection;
 
 namespace ResxWriter
 {
@@ -499,12 +500,86 @@ namespace ResxWriter
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Generic iterator function that is useful to replace a foreach loop with at your discretion.  A provided action is performed on each element.
+        /// </summary>
         public static void ForEach<T>(this IEnumerable<T> ie, Action<T> action)
         {
             foreach (var i in ie)
                 action(i);
         }
 
+        /// <summary>
+        /// Generic iterator function that is useful to replace a foreach loop with at your discretion.  A provided action is performed on each element.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="action">Function that takes in the current value in the sequence. 
+        public static IEnumerable<T> Each<T>(this IEnumerable<T> source, Action<T> action)
+        {
+            return source.Each((value, index) =>
+            {
+                action(value);
+                return true;
+            });
+        }
+
+
+        /// <summary>
+        /// Generic iterator function that is useful to replace a foreach loop with at your discretion.  A provided action is performed on each element.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="action">Function that takes in the current value and its index in the sequence.  
+        public static IEnumerable<T> Each<T>(this IEnumerable<T> source, Action<T, int> action)
+        {
+            return source.Each((value, index) =>
+            {
+                action(value, index);
+                return true;
+            });
+        }
+
+        /// <summary>
+        /// Generic iterator function that is useful to replace a foreach loop with at your discretion.  A provided action is performed on each element.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="action">Function that takes in the current value in the sequence.  Returns a value indicating whether the iteration should continue.  So return false if you don't want to iterate anymore.</param>
+        public static IEnumerable<T> Each<T>(this IEnumerable<T> source, Func<T, bool> action)
+        {
+            return source.Each((value, index) =>
+            {
+                return action(value);
+            });
+        }
+
+        /// <summary>
+        /// Generic iterator function that is useful to replace a foreach loop with at your discretion.  A provided action is performed on each element.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="action">Function that takes in the current value and its index in the sequence.  Returns a value indicating whether the iteration should continue.  So return false if you don't want to iterate anymore.</param>
+        public static IEnumerable<T> Each<T>(this IEnumerable<T> source, Func<T, int, bool> action)
+        {
+            if (source == null)
+                return source;
+
+            int index = 0;
+            foreach (var sourceItem in source)
+            {
+                if (!action(sourceItem, index))
+                    break;
+                index++;
+            }
+            return source;
+        }
+
+        /// <summary>
+        /// Debugging helper method.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns>type name and basetype name</returns>
         public static string NameOf(this object obj)
         {
             return $"{obj.GetType().Name} --> {obj.GetType().BaseType.Name}";
@@ -536,6 +611,307 @@ namespace ResxWriter
             return (!typeof(IFormattable).IsAssignableFrom(type)) ? false : true;
         }
 
+        public static IEnumerable<T> GetCustomAttributes<T>(this ICustomAttributeProvider attributeProvider, bool inherit) where T : Attribute
+        {
+            return attributeProvider.GetCustomAttributes(typeof(T), inherit).Cast<T>();
+        }
+
+        public static bool HasPublicInstanceProperty(this IReflect type, string name)
+        {
+            return type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance) != null;
+        }
+
+        public static IComparer<string> GetStringComparer(this System.Globalization.CultureInfo cultureInfo, System.Globalization.CompareOptions options = System.Globalization.CompareOptions.None)
+        {
+            if (cultureInfo != null)
+            {
+                var func = new Func<string, string, int>((a, b) => cultureInfo.CompareInfo.Compare(a, b, options));
+                return func.ToComparer();
+            }
+            else return null;
+        }
+
+        public static IEqualityComparer<T> ToEqualityComparer<T>(this Func<T, T, bool> func)
+        {
+            return new FuncEqualityComparer<T>(func);
+        }
+
+        public static IComparer<T> ToComparer<T>(this Func<T, T, int> compareFunction)
+        {
+            return new FuncComparer<T>(compareFunction);
+        }
+
+        public static IComparer<T> ToComparer<T>(this Comparison<T> compareFunction)
+        {
+            return new ComparisonComparer<T>(compareFunction);
+        }
+
+        public static IComparer<string> ToComparer<T>(this System.Globalization.CompareInfo compareInfo)
+        {
+            return new FuncComparer<string>(compareInfo.Compare);
+        }
+
+        /// <summary>
+        /// Returns the basic assemblies needed by the application.
+        /// </summary>
+        public static Dictionary<string, Version> GetReferencedAssemblies()
+        {
+            Dictionary<string, Version> values = new Dictionary<string, Version>();
+            try
+            {
+                var assem = Assembly.GetExecutingAssembly();
+                int idx = 0; // to prevent key collisions only
+                values.Add($"{(++idx).AddOrdinal()}: {assem.GetName().Name}", assem.GetName().Version); // add self
+                IOrderedEnumerable<AssemblyName> names = assem.GetReferencedAssemblies().OrderBy(o => o.Name);
+                foreach (var sas in names)
+                {
+                    values.Add($"{(++idx).AddOrdinal()}: {sas.Name}", sas.Version);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Write($"GetReferencedAssemblies: {ex.Message}", LogLevel.Error);
+            }
+            return values;
+        }
+
+        /// <summary>
+        /// Returns an exhaustive list of all modules involved in the current process.
+        /// </summary>
+        public static List<string> GetProcessDependencies()
+        {
+            List<string> result = new List<string>();
+            try
+            {
+                string self = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".exe";
+                System.Diagnostics.ProcessModuleCollection pmc = System.Diagnostics.Process.GetCurrentProcess().Modules;
+                IOrderedEnumerable<System.Diagnostics.ProcessModule> pmQuery = pmc
+                    .OfType<System.Diagnostics.ProcessModule>()
+                    .Where(pt => pt.ModuleMemorySize > 0)
+                    .OrderBy(o => o.ModuleName);
+                foreach (var item in pmQuery)
+                {
+                    //if (!item.ModuleName.Contains($"{self}"))
+                    result.Add($"Module name: {item.ModuleName}, {(string.IsNullOrEmpty(item.FileVersionInfo.FileVersion) ? "version unknown" : $"v{item.FileVersionInfo.FileVersion}")}");
+                    try { item.Dispose(); }
+                    catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Write($"ProcessModuleCollection: {ex.Message}", LogLevel.Error);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Adds an ordinal to a number.
+        /// int number = 1;
+        /// var ordinal = number.AddOrdinal(); // 1st
+        /// </summary>
+        /// <param name="number">The number to add the ordinal too.</param>
+        /// <returns>A string with an number and ordinal</returns>
+        public static string AddOrdinal(this int number)
+        {
+            if (number <= 0)
+                return number.ToString();
+
+            switch (number % 100)
+            {
+                case 11:
+                case 12:
+                case 13:
+                    return number + "th";
+            }
+
+            switch (number % 10)
+            {
+                case 1:
+                    return number + "st";
+                case 2:
+                    return number + "nd";
+                case 3:
+                    return number + "rd";
+                default:
+                    return number + "th";
+            }
+        }
+
+        /// <summary>
+        /// var ints = new[] {1,2,3,4,5,6,7,8,2,3,4,12,243,4,5,34,24,3,45,45,6,45,6,34,56,534};
+        /// var scrambled = ints.Randomize();
+        /// </summary>
+        /// <returns><see cref="IEnumerable{T}"/></returns>
+        public static IEnumerable<T> Randomize<T>(this IEnumerable<T> source)
+        {
+            return source.OrderBy(s => Guid.NewGuid());
+        }
+
+        /// <summary>
+        /// Shuffles any type of array
+        /// </summary>
+        /// <returns>random mixed up array</returns>
+        static public IEnumerable<T> Shuffle<T>(this IEnumerable<T> source)
+        {
+            if (source == null)
+                throw new ArgumentNullException(source.NameOf());
+
+            return ShuffleIterator(source);
+        }
+        static private IEnumerable<T> ShuffleIterator<T>(this IEnumerable<T> source)
+        {
+            T[] array = source.ToArray();
+            Random rnd = new Random();
+            for (int n = array.Length; n > 1;)
+            {
+                int k = rnd.Next(n--); // 0 <= k < n
+                if (n != k)
+                {   //Swap items
+                    T tmp = array[k];
+                    array[k] = array[n];
+                    array[n] = tmp;
+                }
+            }
+            foreach (var item in array)
+                yield return item;
+        }
+        /// <summary>
+        /// Shuffles any type of array
+        /// </summary>
+        /// <returns>random mixed up array</returns>
+        public static T[] Shuffle<T>(this T[] array)
+        {
+            Random random = new Random();
+            int n = array.Length;
+            while (n > 1)
+            {
+                n--;
+                int r = random.Next(n + 1);
+                T t = array[r];
+                array[r] = array[n];
+                array[n] = t;
+            }
+            return array;
+        }
+
+        /// <summary>
+        /// Tests whether an array contains the index, and returns the value if true or the defaultValue if false
+        /// </summary>
+        public static string GetIndex(this string[] array, int index, string defaultValue = "") => (index < array.Length) ? array[index] : defaultValue;
+
+        /// <summary>
+        /// Tests whether an array contains the index, and returns the value if true or the defaultValue if false
+        /// </summary>
+        public static int GetIndex(this int[] array, int index, int defaultValue = -1) => (index < array.Length) ? array[index] : defaultValue;
+
+        /// <summary>
+        /// Tests whether an array contains the index, and returns the value if true or the defaultValue if false
+        /// </summary>
+        public static T GetIndex<T>(this T[] array, int index, T defaultValue) => (index < array.Length) ? array[index] : defaultValue;
+
+        /// <summary>
+        /// CopyTo without the second parameter, for when you just want to copy array A to array B verbatim and size is not a concern.
+        /// array.CopyTo(target); 
+        /// </summary>
+        public static void CopyTo<T>(this T[] source, T[] target)
+        {
+            source.CopyTo(target, 0);
+        }
+
+        /// <summary>
+        /// Returns a List of T except what's in a second list, without doing a distinct
+        /// </summary>
+        /// <typeparam name="TSource"></typeparam>
+        /// <param name="first"></param>
+        /// <param name="second"></param>
+        /// <returns></returns>
+        public static List<TSource> ExceptWithDuplicates<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
+        {
+            /* EXAMPLE...
+            List<int> a = new List<int> {1,8,8,3};
+            List<int> b = new List<int> {1,8,3};
+            var x = a.ExceptWithDuplicates(b);    //returns list with a single element: 8
+            */
+            List<TSource> s1 = second.ToList();
+            List<TSource> ret = new List<TSource>();
+
+            first.ToList().ForEach(n =>
+            {
+                if (s1.Contains(n))
+                    s1.Remove(n);
+                else
+                    ret.Add(n);
+
+            });
+
+            return ret;
+        }
+
+        /// <summary>
+        /// var duplicates = list.GetDuplicates();
+        /// </summary>
+        /// <param name="source">list to operate on</param>
+        /// <returns>list of duplicates</returns>
+        public static IEnumerable<T> GetDuplicates<T>(this IEnumerable<T> source)
+        {
+            HashSet<T> itemsSeen = new HashSet<T>();
+            HashSet<T> itemsYielded = new HashSet<T>();
+            foreach (T item in source)
+            {
+                if (!itemsSeen.Add(item))
+                {
+                    if (itemsYielded.Add(item))
+                        yield return item;
+                }
+            }
+        }
+
+        /// <summary>
+        /// double number = 2.2365182936409;
+        /// string display = number.DisplayDouble(2); // 2.24
+        /// </summary>
+        public static string DisplayDouble(this double value, int precision)
+        {
+            return value.ToString("N" + precision);
+        }
+
+        /// <summary>
+        /// Extract a string from an other string between 2 characters.
+        /// </summary>
+        /// <example>
+        /// "message {yes} {no}".Extract("{", "}");   => returns "yes"
+        /// "message {yes} {no}".Extract("{", "}",2); => returns "no"
+        /// "message {yes} {no}".Extract("", "{");    => returns "message"
+        /// </example>
+        public static string Extract(this string value, string begin_text, string end_text, int occurrence = 1)
+        {
+            if (string.IsNullOrEmpty(value) == false)
+            {
+                int start = -1;
+
+                for (int i = 1; i <= occurrence; i++)
+                    start = value.IndexOf(begin_text, start + 1);
+
+                if (start < 0)
+                    return value;
+
+                start += begin_text.Length;
+
+                if (string.IsNullOrEmpty(end_text))
+                    return value.Substring(start);
+
+                int end = value.IndexOf(end_text, start);
+                if (end < 0)
+                    return value.Substring(start);
+
+                end -= start;
+
+                return value.Substring(start, end);
+            }
+            else
+                return value;
+        }
+
         /// <summary>
         /// You could also use the Thread.IsAlive bool.
         /// </summary>
@@ -559,6 +935,79 @@ namespace ResxWriter
         {
             StreamReader reader = new StreamReader(stream);
             return reader.ReadToEnd();
+        }
+
+        /// <summary>
+        /// Serialize object to stream using <see cref="System.Xml.Serialization.XmlSerializer"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="stream"></param>
+        public static void ToXml<T>(this T value, Stream stream) where T : new()
+        {
+            var _serializer = GetValue(typeof(T));
+            _serializer.Serialize(stream, value);
+        }
+
+        /// <summary>
+        /// Deserialize object from stream using <see cref="System.Xml.Serialization.XmlSerializer"/>.
+        /// </summary>
+        /// <typeparam name="T">Type of deserialized object</typeparam>
+        /// <param name="source">Xml source</param>
+        /// <returns>deserialized object</returns>
+        public static T FromXml<T>(this Stream source) where T : new()
+        {
+            var _serializer = GetValue(typeof(T));
+            return (T)_serializer.Deserialize(source);
+        }
+
+        private static readonly Dictionary<RuntimeTypeHandle, System.Xml.Serialization.XmlSerializer> ms_serializers = new Dictionary<RuntimeTypeHandle, System.Xml.Serialization.XmlSerializer>();
+        private static System.Xml.Serialization.XmlSerializer GetValue(Type type)
+        {
+            System.Xml.Serialization.XmlSerializer _serializer;
+            if (!ms_serializers.TryGetValue(type.TypeHandle, out _serializer))
+            {
+                lock (ms_serializers)
+                {
+                    if (!ms_serializers.TryGetValue(type.TypeHandle, out _serializer))
+                    {
+                        _serializer = new System.Xml.Serialization.XmlSerializer(type);
+                        ms_serializers.Add(type.TypeHandle, _serializer);
+                    }
+                }
+            }
+            return _serializer;
+        }
+
+        /// <summary>
+        /// Retrieve Querystring,Params or Namevalue Collection with default values.
+        /// EXAMPLE: var count = Request.QueryString.GetValue("count", 0);
+        /// </summary>
+        public static T GetValue<T>(this System.Collections.Specialized.NameValueCollection collection, string key, T defaultValue)
+        {
+            if (collection != null && collection.Count > 0)
+            {
+                if (!string.IsNullOrEmpty(key) && collection[key] != null)
+                {
+                    var val = collection[key];
+
+                    return (T)Convert.ChangeType(val, typeof(T));
+                }
+            }
+
+            return (T)defaultValue;
+        }
+
+        public static T GetValue<T>(this Dictionary<string, string> dict, string key)
+        {
+            try
+            {
+                return (T)Convert.ChangeType(dict[key], typeof(T));
+            }
+            catch (KeyNotFoundException)
+            {
+                return default(T);
+            }
         }
 
         /// <summary>
@@ -1099,7 +1548,7 @@ namespace ResxWriter
     }
     #endregion
 
-    #region File Deletion
+    #region [File Deletion]
     /// <summary>
     /// Helper class to delete a file via the recycle bin.
     /// </summary>
@@ -1425,7 +1874,7 @@ namespace ResxWriter
     }
     #endregion
 
-    #region ShellLink Object
+    #region [ShellLink Object]
     /// <summary>
     /// Summary description for ShellLink.
     /// </summary>
@@ -2276,6 +2725,60 @@ namespace ResxWriter
 
         [DllImport("user32")]
         internal static extern int DestroyIcon(IntPtr hIcon);
+    }
+    #endregion
+
+    #region [Support Classes]
+    public class FuncComparer<T> : IComparer<T>
+    {
+        public FuncComparer(Func<T, T, int> func)
+        {
+            if (func != null)
+                m_func = func;
+        }
+
+        public int Compare(T x, T y)
+        {
+            return m_func(x, y);
+        }
+
+        private readonly Func<T, T, int> m_func;
+    }
+
+    public class ComparisonComparer<T> : IComparer<T>
+    {
+        public ComparisonComparer(Comparison<T> func)
+        {
+            if (func != null)
+                m_func = func;
+        }
+
+        public int Compare(T x, T y)
+        {
+            return m_func(x, y);
+        }
+
+        private readonly Comparison<T> m_func;
+    }
+
+    public class FuncEqualityComparer<T> : IEqualityComparer<T>
+    {
+        public FuncEqualityComparer(Func<T, T, bool> func)
+        {
+            if (func != null)
+                m_func = func;
+        }
+        public bool Equals(T x, T y)
+        {
+            return m_func(x, y);
+        }
+
+        public int GetHashCode(T obj)
+        {
+            return 0; // This is on purpose. Should only use function, not short-cut by hashcode compare.
+        }
+
+        private readonly Func<T, T, bool> m_func;
     }
     #endregion
 }

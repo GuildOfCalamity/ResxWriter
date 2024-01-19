@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -29,11 +30,16 @@ namespace ResxWriter
         string _genericError = "An error was detected.";
         bool _useMeta = false;
         bool _closing = false;
-        System.Drawing.Font _font = new System.Drawing.Font("Calibri", 13);
+        bool _showWarning = false;
+        Color _clrWarning = Color.FromArgb(240, 180, 0);
+        System.Drawing.Font _warningFont = new System.Drawing.Font("Calibri", 16);
+        System.Drawing.Font _standardFont = new System.Drawing.Font("Calibri", 13);
         System.Drawing.Pen _pen = new System.Drawing.Pen(System.Drawing.Color.Red, 2.0F);
         System.Windows.Forms.ErrorProvider _pathErrorProvider;
         DateTime _lastChange = DateTime.MinValue;
         ValueStopwatch _vsw = ValueStopwatch.StartNew();
+        static Graphics _formPainter = null;
+        static RegistryMonitor regMon;
         #endregion
 
         #region [Animation]
@@ -70,7 +76,6 @@ namespace ResxWriter
         void frmMain_Shown(object sender, EventArgs e)
         {
             #region [Setup Tool Strip Menu Items]
-
             // The background color will not apply correctly, so we'll use this trick as a workaround.
             openLogToolStripMenuItem.BackgroundImage = ResxWriter.Properties.Resources.SB_Background;
             openLogToolStripMenuItem.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
@@ -106,8 +111,10 @@ namespace ResxWriter
             // Enable double buffering for the main form.
             this.DoubleBuffered = true;
 
+            Logger.Instance.OnDebug += (msg) => { Debug.WriteLine($"{msg}"); };
+
             UpdateStatusBar("Click the folder icon to select a file and then click import.");
-            SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
+            SwitchButtonImage(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
 
             #region [Load settings]
             var lastPath = SettingsManager.LastPath;
@@ -135,9 +142,6 @@ namespace ResxWriter
             #endregion
 
             DetermineWindowDPI();
-
-            Logger.Instance.OnDebug += (msg) => { Debug.WriteLine($"{msg}"); };
-
             SetListTheme(lvContents);
 
             // Restore user's desired location.
@@ -149,9 +153,9 @@ namespace ResxWriter
                 this.Height = SettingsManager.WindowHeight;
             }
 
+            // Create and configure timer for background animation.
             if (SettingsManager.RunAnimation)
             {
-                // Create and configure the timer for our background animation.
                 _backgroundImage = ResxWriter.Properties.Resources.App_Icon_png;
                 _marginX = (int)(_backgroundImage.Width * 0.11) * -1;
                 _marginY = (int)(_backgroundImage.Height * 0.09) * -1;
@@ -166,13 +170,15 @@ namespace ResxWriter
 
             if (SettingsManager.MakeShortcut)
             {
-                // ** Desktop Shortcut **
+                #region [Desktop Shortcut]
                 if (!Utils.DoesShortcutExist(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name))
                     Utils.CreateApplicationShortcut(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name, true);
+                #endregion
 
-                // ** StartMenu Shortcut **
+                #region [StartMenu Shortcut]
                 //if (!Utils.DoesShortcutExist(Environment.GetFolderPath(Environment.SpecialFolder.Programs), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name))
                 //    Utils.CreateApplicationShortcut(Environment.GetFolderPath(Environment.SpecialFolder.Programs), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name, true);
+                #endregion
             }
 
             //this.BackgroundImageLayout = ImageLayout.Stretch;
@@ -184,6 +190,25 @@ namespace ResxWriter
             //this.Paint += new System.Windows.Forms.PaintEventHandler(MainFormOnPaint);
 
             //UpdateStatusBar("[INFO] Some super long text to test margins and justification settings in the application so we can see where any issues might be with regards to visuals.");
+
+            #region [Log Application Dependencies]
+            //var procDeps = Utils.GetProcessDependencies();
+            var refAssems = Utils.GetReferencedAssemblies();
+            Logger.Instance.Write($"Runtime assembly list:", LogLevel.Debug);
+            foreach (KeyValuePair<string, Version> assem in refAssems)
+                Logger.Instance.Write($"{assem.Key} v{assem.Value}", LogLevel.Debug);
+            #endregion
+
+            #region [Registry Monitoring]
+            // create and setup the registry monitor to detect the Windows Theme setting
+            regMon = new RegistryMonitor(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize") 
+            {
+                RegChangeNotifyFilter = RegChangeNotifyFilter.Value
+            };
+            regMon.RegChanged += (obj, rea) => { Debug.WriteLine("[INFO] System Theme Registry Value Changed."); };
+            regMon.Error += (obj, rea) => { Debug.WriteLine("[WARNING] System Theme Registry Value Error."); };
+            regMon?.Start();
+            #endregion
         }
 
         /// <summary>
@@ -227,11 +252,22 @@ namespace ResxWriter
         {
             base.OnPaint(e);
 
+            if (_formPainter == null)
+                _formPainter = e.Graphics; // can be used in other methods for custom drawing
+
             if (_backgroundImage != null && !_closing)
             {
                 //e.Graphics.DrawImage(_backgroundImage, _imagePosition.X, _imagePosition.Y, _backgroundImage.Width, _backgroundImage.Height);
                 e.Graphics.DrawImage(_backgroundImage, _imagePosition);
             }
+
+            #region [TextRenderer Example]
+            if (_showWarning)
+            {
+                var textSize = TextRenderer.MeasureText(" ** WARNING ** ", _warningFont);
+                TextRenderer.DrawText(e.Graphics, " ** WARNING ** ", _warningFont, new Point(cbDelimiters.Right + 20, cbDelimiters.Top), _clrWarning, Color.Black);
+            }
+            #endregion
         }
         #endregion
 
@@ -270,7 +306,7 @@ namespace ResxWriter
                 }
                 else
                 {
-                    SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
+                    SwitchButtonImage(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                     UpdateStatusBar("File selection was canceled.");
                 }
             }
@@ -309,7 +345,7 @@ namespace ResxWriter
                     else
                     {
                         UpdateStatusBar($"Check your input file and try again.");
-                        SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
+                        SwitchButtonImage(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                     }
 
                     //AddImportToTextBox(_userValues, tbContents);
@@ -322,14 +358,14 @@ namespace ResxWriter
                 catch (Exception ex)
                 {
                     UpdateStatusBar(_genericError);
-                    SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
+                    SwitchButtonImage(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                     Logger.Instance.Write($"Could not read the file: {ex.Message}", LogLevel.Error);
                     ShowMsgBoxError($"Could not read the file.\r\n{ex.Message}", "Error");
                 }
             }
             else
             {
-                SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
+                SwitchButtonImage(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                 UpdateStatusBar("Import was canceled.");
             }
         }
@@ -350,7 +386,7 @@ namespace ResxWriter
                 if (_userValues.Count == 0)
                 {
                     UpdateStatusBar("Check that you have imported some valid data.");
-                    SwitchButton(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
+                    SwitchButtonImage(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                     ShowMsgBoxError("No valid delimited values to work with from the provided file.", "Validation Error");
                     return;
                 }
@@ -439,6 +475,7 @@ namespace ResxWriter
             {
                 _closing = true;
                 _timer?.Stop();
+                regMon?.Stop();
 
                 if (this.WindowState == FormWindowState.Normal)
                 {
@@ -587,6 +624,10 @@ namespace ResxWriter
             var tsmi = sender as ToolStripMenuItem;
             try
             {
+                var hcCurr = tsmi.Image.Palette;
+                var hcOn = ResxWriter.Properties.Resources.SB_DotOn.Palette;
+                var hcOff = ResxWriter.Properties.Resources.SB_DotOff.Palette;
+
                 // Don't re-enter if already active.
                 if (tsmi.Image.BytewiseCompare(ResxWriter.Properties.Resources.SB_DotOn))
                     return;
@@ -664,7 +705,7 @@ namespace ResxWriter
             var y = cbDelimiters.Top + 1;
 
             // Draw message text.
-            g.DrawString("Rendering text using the form's GDI drawing surface.", _font, System.Drawing.Brushes.Wheat, new Point(x, y));
+            g.DrawString("Rendering text using the form's GDI drawing surface.", _standardFont, System.Drawing.Brushes.Wheat, new Point(x, y));
             g.DrawEllipse(_pen, btnImport.Left + 2, btnImport.Top + 2, btnImport.Width - 4, btnImport.Height - 4);
             g.DrawLine(_pen, btnImport.Left + 2, btnImport.Top + 2, btnImport.Right - 2, btnImport.Bottom - 2);
             g.DrawLine(_pen, btnImport.Right - 2, btnImport.Top + 2, btnImport.Left + 2, btnImport.Bottom - 2);
@@ -889,10 +930,10 @@ namespace ResxWriter
         /// <param name="btn"><see cref="Button"/></param>
         /// <param name="img"><see cref="Bitmap"></param>
         /// <remarks>Thread safe method</remarks>
-        public void SwitchButton(Button btn, Bitmap img)
+        public void SwitchButtonImage(Button btn, Bitmap img)
         {
             if (InvokeRequired)
-                BeginInvoke(new Action(() => SwitchButton(btn, img)));
+                BeginInvoke(new Action(() => SwitchButtonImage(btn, img)));
             else
             {
                 btn.Image = img;
@@ -973,11 +1014,11 @@ namespace ResxWriter
             {
                 Thread.Sleep(blinkSpeed);
                 //ToggleControl(btn, false);
-                SwitchButton(btn, ResxWriter.Properties.Resources.Button02);
+                SwitchButtonImage(btn, ResxWriter.Properties.Resources.Button02);
                 
                 Thread.Sleep(blinkSpeed);
                 //ToggleControl(btn, true);
-                SwitchButton(btn, ResxWriter.Properties.Resources.Button01);
+                SwitchButtonImage(btn, ResxWriter.Properties.Resources.Button01);
             }
         }
 
@@ -1091,6 +1132,16 @@ namespace ResxWriter
             using (var graphics = CreateGraphics())
             {
                 SettingsManager.WindowsDPI = Utils.GetCurrentDPI(graphics);
+            }
+        }
+
+        Size GetApproximateTextSize(string text) => TextRenderer.MeasureText(text, _standardFont);
+
+        void DrawText(string text)
+        {
+            if (_formPainter != null)
+            {
+                TextRenderer.DrawText(_formPainter, text, _standardFont, new Point(cbDelimiters.Right + 20, cbDelimiters.Top + 2), SystemColors.Highlight, SystemColors.HighlightText);
             }
         }
 

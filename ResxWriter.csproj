@@ -75,6 +75,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Support\Logger.cs" />
+    <Compile Include="Support\RegistryMonitor.cs" />
     <Compile Include="Support\SettingsManager.cs" />
     <Compile Include="Support\Utils.cs" />
     <Compile Include="Support\ValueStopwatch.cs" />
