@@ -2,6 +2,8 @@
 
 ![Image](/Assets/ScreenShot.png)
 
+![Image](/Assets/ScreenShot2.png)
+
 ## 🎛️ Description
 * Creates .resx file from the imported delimited text file.
 * This application uses [.NET Framework v4.8](https://dotnet.microsoft.com/en-us/download/dotnet-framework/net48)
