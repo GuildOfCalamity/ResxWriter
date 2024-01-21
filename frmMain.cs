@@ -39,7 +39,9 @@ namespace ResxWriter
         DateTime _lastChange = DateTime.MinValue;
         ValueStopwatch _vsw = ValueStopwatch.StartNew();
         static Graphics _formPainter = null;
-        static RegistryMonitor regMon;
+        static RegistryMonitor _regMon = null;
+        static Process _logProcess = null;
+        static Process _settingsProcess = null;
         #endregion
 
         #region [Animation]
@@ -200,14 +202,14 @@ namespace ResxWriter
             #endregion
 
             #region [Registry Monitoring]
-            // create and setup the registry monitor to detect the Windows Theme setting
-            regMon = new RegistryMonitor(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize") 
-            {
-                RegChangeNotifyFilter = RegChangeNotifyFilter.Value
-            };
-            regMon.RegChanged += (obj, rea) => { Debug.WriteLine("[INFO] System Theme Registry Value Changed."); };
-            regMon.Error += (obj, rea) => { Debug.WriteLine("[WARNING] System Theme Registry Value Error."); };
-            regMon?.Start();
+            // Create and setup the registry monitor to detect the Windows Theme setting.
+            //regMon = new RegistryMonitor(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize") 
+            //{
+            //    RegChangeNotifyFilter = RegChangeNotifyFilter.Value
+            //};
+            //regMon.RegChanged += (obj, rea) => { Debug.WriteLine("[INFO] System Theme Registry Value Changed."); };
+            //regMon.Error += (obj, rea) => { Debug.WriteLine("[WARNING] System Theme Registry Value Error."); };
+            //regMon?.Start();
             #endregion
         }
 
@@ -475,7 +477,7 @@ namespace ResxWriter
             {
                 _closing = true;
                 _timer?.Stop();
-                regMon?.Stop();
+                _regMon?.Stop();
 
                 if (this.WindowState == FormWindowState.Normal)
                 {
@@ -624,26 +626,23 @@ namespace ResxWriter
             var tsmi = sender as ToolStripMenuItem;
             try
             {
-                var hcCurr = tsmi.Image.Palette;
-                var hcOn = ResxWriter.Properties.Resources.SB_DotOn.Palette;
-                var hcOff = ResxWriter.Properties.Resources.SB_DotOff.Palette;
-
                 // Don't re-enter if already active.
-                if (tsmi.Image.BytewiseCompare(ResxWriter.Properties.Resources.SB_DotOn))
+                if (_logProcess != null) //if (tsmi.Image.BytewiseCompare(ResxWriter.Properties.Resources.SB_DotOn))
                     return;
 
                 // Update the image to indicate the process is in use.
                 UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOn);
 
-                var p = Process.Start(Logger.Instance.LogPath);
+                _logProcess = Process.Start(Logger.Instance.LogPath);
 
                 // This was not reliable.
-                //p.Exited += (po, pe) => { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; };
+                //_logProcess.Exited += (po, pe) => { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; };
 
                 Task.Run(() =>
                 {
-                    while (!p.HasExited && !_closing) { Thread.Sleep(400); }
+                    while (!_logProcess.HasExited && !_closing) { Thread.Sleep(400); }
                     UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOff);
+                    _logProcess = null;
                 });
             }
             catch (Exception) { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; }
@@ -658,21 +657,22 @@ namespace ResxWriter
             try
             {
                 // Don't re-enter if already active.
-                if (tsmi.Image.BytewiseCompare(ResxWriter.Properties.Resources.SB_DotOn))
+                if (_settingsProcess != null) //if (tsmi.Image.BytewiseCompare(ResxWriter.Properties.Resources.SB_DotOn))
                     return;
 
                 // Update the image to indicate the process is in use.
                 UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOn);
 
-                var p = Process.Start(SettingsManager.Location);
+                _settingsProcess = Process.Start(SettingsManager.Location);
 
                 // This was not reliable.
-                //p.Exited += (po, pe) => { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; };
+                //_settingsProcess.Exited += (po, pe) => { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; };
 
                 Task.Run(() =>
                 {
-                    while (!p.HasExited && !_closing) { Thread.Sleep(400); }
+                    while (!_settingsProcess.HasExited && !_closing) { Thread.Sleep(400); }
                     UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOff);
+                    _settingsProcess = null;
                 });
             }
             catch (Exception) { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; }

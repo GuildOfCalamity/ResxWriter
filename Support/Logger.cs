@@ -34,6 +34,7 @@ namespace ResxWriter
         private static string _fileName = string.Empty;
 
         // Events for hooking in external work module.
+        public event LoggingEventHandler OnVerbose;
         public event LoggingEventHandler OnInfo;
         public event LoggingEventHandler OnDebug;
         public event LoggingEventHandler OnWarning;
@@ -42,7 +43,7 @@ namespace ResxWriter
         public event LoggingEventHandler OnImportant;
 
         /// <summary>
-        /// Introduces a way to call the class once without worring about creating a working object.
+        /// Introduces a way to call the class once without worrying about creating a working object.
         /// </summary>
         public static Logger Instance
         {
@@ -161,35 +162,23 @@ namespace ResxWriter
             // Format the message.
             message = $"[{DateTime.Now.ToString("MM/dd/yyyy hh:mm:ss.fff tt")} -> {System.IO.Path.GetFileName(filePath)} -> {origin}(line {lineNumber})] {message}";
 
-            switch(level)
+            // Fire any listening events.
+            switch (level)
             {
-                case LogLevel.None:
-                    return;
-                case LogLevel.Debug:
-                    OnDebug?.Invoke(message);
-                    break;
-                case LogLevel.Info:
-                    OnInfo?.Invoke(message);
-                    break;
-                case LogLevel.Warning:
-                    OnWarning?.Invoke(message);
-                    break;
-                case LogLevel.Error:
-                    OnError?.Invoke(message);
-                    break;
-                case LogLevel.Success:
-                    OnSuccess?.Invoke(message);
-                    break;
-                case LogLevel.Important:
-                    OnImportant?.Invoke(message);
-                    break;
-                default:
-                    break;
+                case LogLevel.None: return;
+                case LogLevel.Debug: OnDebug?.Invoke(message); break;
+                case LogLevel.Verbose: OnVerbose?.Invoke(message); break;
+                case LogLevel.Info: OnInfo?.Invoke(message); break;
+                case LogLevel.Warning: OnWarning?.Invoke(message); break;
+                case LogLevel.Error: OnError?.Invoke(message); break;
+                case LogLevel.Success: OnSuccess?.Invoke(message); break;
+                case LogLevel.Important: OnImportant?.Invoke(message); break;
+                default: break;
             }
 
             using (var fileStream = new StreamWriter(File.OpenWrite(LogPath), System.Text.Encoding.UTF8))
             {
-                // Jump to the end of the file before writting (same as append).
+                // Jump to the end of the file before writing (same as append).
                 fileStream.BaseStream.Seek(0, SeekOrigin.End);
                 // Write the text to the file (adds CRLF automatically).
                 fileStream.WriteLine(message);
@@ -214,35 +203,23 @@ namespace ResxWriter
             // Format the message
             message = $"[{DateTime.Now.ToString("MM/dd/yyyy hh:mm:ss.fff tt")} -> {System.IO.Path.GetFileName(filePath)} -> {origin}(line {lineNumber})] {message}";
 
+            // Fire any listening events.
             switch (level)
             {
-                case LogLevel.None:
-                    return;
-                case LogLevel.Debug:
-                    OnDebug?.Invoke(message);
-                    break;
-                case LogLevel.Info:
-                    OnInfo?.Invoke(message);
-                    break;
-                case LogLevel.Warning:
-                    OnWarning?.Invoke(message);
-                    break;
-                case LogLevel.Error:
-                    OnError?.Invoke(message);
-                    break;
-                case LogLevel.Success:
-                    OnSuccess?.Invoke(message);
-                    break;
-                case LogLevel.Important:
-                    OnImportant?.Invoke(message);
-                    break;
-                default:
-                    break;
+                case LogLevel.None: return;
+                case LogLevel.Debug: OnDebug?.Invoke(message); break;
+                case LogLevel.Verbose: OnVerbose?.Invoke(message); break;
+                case LogLevel.Info: OnInfo?.Invoke(message); break;
+                case LogLevel.Warning: OnWarning?.Invoke(message); break;
+                case LogLevel.Error: OnError?.Invoke(message); break;
+                case LogLevel.Success: OnSuccess?.Invoke(message); break;
+                case LogLevel.Important: OnImportant?.Invoke(message); break;
+                default: break;
             }
 
             using (var fileStream = new StreamWriter(File.OpenWrite(LogPath), System.Text.Encoding.UTF8))
             {
-                // Jump to the end of the file before writting (same as append).
+                // Jump to the end of the file before writing (same as append).
                 fileStream.BaseStream.Seek(0, SeekOrigin.End);
                 // Write the text to the file (adds CRLF automatically).
                 fileStream.WriteLine(message);
