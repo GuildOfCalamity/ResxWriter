@@ -83,6 +83,16 @@ namespace ResxWriter.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap App_Settings {
+            get {
+                object obj = ResourceManager.GetObject("App_Settings", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Button01 {
             get {
                 object obj = ResourceManager.GetObject("Button01", resourceCulture);
@@ -106,6 +116,16 @@ namespace ResxWriter.Properties {
         internal static System.Drawing.Bitmap Button03 {
             get {
                 object obj = ResourceManager.GetObject("Button03", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap CB_Delimiter {
+            get {
+                object obj = ResourceManager.GetObject("CB_Delimiter", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -146,6 +166,56 @@ namespace ResxWriter.Properties {
         internal static System.Drawing.Bitmap MB_Warning {
             get {
                 object obj = ResourceManager.GetObject("MB_Warning", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SB_Background {
+            get {
+                object obj = ResourceManager.GetObject("SB_Background", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SB_BlueOff {
+            get {
+                object obj = ResourceManager.GetObject("SB_BlueOff", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SB_BlueOn {
+            get {
+                object obj = ResourceManager.GetObject("SB_BlueOn", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SB_DotOff {
+            get {
+                object obj = ResourceManager.GetObject("SB_DotOff", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SB_DotOn {
+            get {
+                object obj = ResourceManager.GetObject("SB_DotOn", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
