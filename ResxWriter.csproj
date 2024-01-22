@@ -52,6 +52,10 @@
     <Compile Include="AssemblyInfo.cs">
       <Link>Properties\AssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Support\ImageComboBox.cs" />
+    <Compile Include="Support\ImageComboBox.Designer.cs">
+      <DependentUpon>ImageComboBox.cs</DependentUpon>
+    </Compile>
     <Compile Include="Support\CustomStatusStrip.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -86,6 +90,9 @@
     <EmbeddedResource Include="frmMessage.resx">
       <DependentUpon>frmMessage.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Support\ImageComboBox.resx">
+      <DependentUpon>ImageComboBox.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -117,6 +124,7 @@
     <Content Include="Assets\Button01.png" />
     <Content Include="Assets\Button02.png" />
     <Content Include="Assets\Button03.png" />
+    <Content Include="Assets\CB_Delimiter.png" />
     <Content Include="Assets\MB_Error.png" />
     <Content Include="Assets\MB_Info.png" />
     <Content Include="Assets\MB_Success.png" />

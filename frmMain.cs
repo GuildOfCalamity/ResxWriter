@@ -24,6 +24,15 @@ namespace ResxWriter
     {
         #region [Props]
         readonly List<string> _commonDelimiters = new List<string> { ",", ";", "~", "|", "TAB" };
+        // Used for testing the ImageComboBox control.
+        readonly Dictionary<string,string> _delimiters = new Dictionary<string,string> 
+        { 
+            { "Comma ,", "," }, 
+            { "Semicolon ;", ";" }, 
+            { "Tilde ~", "~" }, 
+            { "Pipe |", "|" }, 
+            { "Tab \\t", "\t" } 
+        };
         Dictionary<string, string> _userValues = new Dictionary<string, string>();
         string _userDelimiter = string.Empty;
         string _passedArg = string.Empty;
@@ -46,12 +55,12 @@ namespace ResxWriter
 
         #region [Animation]
         Image _backgroundImage;
+        Point _imagePosition;
+        System.Windows.Forms.Timer _timer;
         int _moveX = 2;
         int _moveY = 2;
         int _marginX = -1;
         int _marginY = -1;
-        System.Windows.Forms.Timer _timer;
-        Point _imagePosition;
         #endregion
 
         public frmMain()
@@ -62,15 +71,13 @@ namespace ResxWriter
         public frmMain(string[] args)
         {
             InitializeComponent();
-            foreach (var a in args)
-            { 
-                _passedArg = $"{a}"; 
-            }
+
+            foreach (var a in args) { _passedArg = $"{a}"; }
 
             // Test for adding explorer right-click context:
             if (_passedArg.Length > 0 && _passedArg.Contains("shell-extension-add"))
                 AddOpenWithOptionToExplorerShell(true);
-            else if (_passedArg.Length > 0 && _passedArg.Contains("shell-extension-sub"))
+            else if (_passedArg.Length > 0 && _passedArg.Contains("shell-extension-rem"))
                 AddOpenWithOptionToExplorerShell(false);
         }
 
@@ -118,7 +125,7 @@ namespace ResxWriter
             UpdateStatusBar("Click the folder icon to select a file and then click import.");
             SwitchButtonImage(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
 
-            #region [Load settings]
+            #region [Load and apply settings]
             var lastPath = SettingsManager.LastPath;
             if (!string.IsNullOrEmpty(_passedArg))
                 tbFilePath.Text = _passedArg;
@@ -128,23 +135,6 @@ namespace ResxWriter
                 tbFilePath.Text = $"{Environment.CurrentDirectory}\\";
 
             var lastDelimiter = SettingsManager.LastDelimiter;
-            #endregion
-
-            #region [ComboBox Setup]
-            foreach (var delimiter in _commonDelimiters)
-            {
-                cbDelimiters.Items.Add(delimiter);
-                _userDelimiter = delimiter;
-            }
-            if (cbDelimiters.Items.Count > 0)
-                cbDelimiters.SelectedIndex = 0;
-
-            if (!string.IsNullOrEmpty(lastDelimiter))
-                cbDelimiters.Text = _userDelimiter = lastDelimiter;
-            #endregion
-
-            DetermineWindowDPI();
-            SetListTheme(lvContents);
 
             // Restore user's desired location.
             if (SettingsManager.WindowWidth != -1)
@@ -167,9 +157,7 @@ namespace ResxWriter
                 _timer.Start();
             }
 
-            // Have we saved a location that is not possible?
-            CanWeFit(this, new Rectangle(30, 20, 900, 575));
-
+            // Check for application shortcut.
             if (SettingsManager.MakeShortcut)
             {
                 #region [Desktop Shortcut]
@@ -182,6 +170,26 @@ namespace ResxWriter
                 //    Utils.CreateApplicationShortcut(Environment.GetFolderPath(Environment.SpecialFolder.Programs), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name, true);
                 #endregion
             }
+            #endregion
+
+            #region [ComboBox Setup]
+            foreach (var delimiter in _commonDelimiters)
+            {
+                cbDelimiters.Items.Add(delimiter);
+                _userDelimiter = delimiter;
+            }
+            if (cbDelimiters.Items.Count > 0)
+                cbDelimiters.SelectedIndex = 0;
+
+            if (!string.IsNullOrEmpty(lastDelimiter))
+                cbDelimiters.Text = _userDelimiter = lastDelimiter;
+            #endregion
+
+            DetermineWindowDPI();
+            SetListTheme(lvContents);
+
+            // Have we saved a location that is not possible?
+            CanWeFit(this, new Rectangle(30, 20, 900, 575));
 
             //this.BackgroundImageLayout = ImageLayout.Stretch;
             //this.BackgroundImage = Image.FromFile(Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "Background.png"));
@@ -209,8 +217,39 @@ namespace ResxWriter
             //};
             //regMon.RegChanged += (obj, rea) => { Debug.WriteLine("[INFO] System Theme Registry Value Changed."); };
             //regMon.Error += (obj, rea) => { Debug.WriteLine("[WARNING] System Theme Registry Value Error."); };
-            //regMon?.Start();
+            //regMon.Start();
             #endregion
+
+            #region [Test custom ComboBox control]
+            //ImageComboBox imageComboBox = new ImageComboBox(
+            //    Color.FromArgb(250, 250, 250), 
+            //    Color.FromArgb(20, 20, 20), 
+            //    new Size(170, 80), 
+            //    new Size(24, 24), 
+            //    new Font("Consolas", 12F, FontStyle.Regular, GraphicsUnit.Point, (byte)0));
+            //imageComboBox.Left = lblDelims.Right + 80;
+            //imageComboBox.Top = lblDelims.Top - 3;
+            //foreach (var delimiter in _delimiters)
+            //{
+            //    imageComboBox.Items.Add(delimiter.Key);
+            //    _userDelimiter = delimiter.Value;
+            //    imageComboBox.ImageList.Images.Add(ResxWriter.Properties.Resources.CB_Delimiter);
+            //    //imageComboBox.ImageList.Images.Add(Image.FromFile(".\\Assets\\CB_Delimiter.png"));
+            //}
+            //imageComboBox.SelectedIndex = 0;
+            //this.Controls.Add(imageComboBox);
+            //imageComboBox.ItemSelected += ImageComboBox_ItemSelected; // Subscribe to the custom event.
+            #endregion
+        }
+
+        /// <summary>
+        /// Test event for our custom <see cref="ImageComboBox"/> control.
+        /// </summary>
+        /// <param name="sender"><see cref="ImageComboBox"/></param>
+        /// <param name="e"><see cref="ImageComboBoxItemSelectedEvent"/></param>
+        void ImageComboBox_ItemSelected(object sender, ImageComboBoxItemSelectedEvent e)
+        {
+            UpdateStatusBar($"SelectedItem: {e.SelectedItem}   SelectedImage: {e.SelectedImage.Width},{e.SelectedImage.Height}");
         }
 
         /// <summary>
@@ -258,10 +297,7 @@ namespace ResxWriter
                 _formPainter = e.Graphics; // can be used in other methods for custom drawing
 
             if (_backgroundImage != null && !_closing)
-            {
-                //e.Graphics.DrawImage(_backgroundImage, _imagePosition.X, _imagePosition.Y, _backgroundImage.Width, _backgroundImage.Height);
-                e.Graphics.DrawImage(_backgroundImage, _imagePosition);
-            }
+                e.Graphics.DrawImage(_backgroundImage, _imagePosition); //e.Graphics.DrawImage(_backgroundImage, _imagePosition.X, _imagePosition.Y, _backgroundImage.Width, _backgroundImage.Height);
 
             #region [TextRenderer Example]
             if (_showWarning)
@@ -626,9 +662,13 @@ namespace ResxWriter
             var tsmi = sender as ToolStripMenuItem;
             try
             {
-                // Don't re-enter if already active.
-                if (_logProcess != null) //if (tsmi.Image.BytewiseCompare(ResxWriter.Properties.Resources.SB_DotOn))
+                #region [Don't re-enter if already active]
+                if (_logProcess != null)
                     return;
+
+                // We could also compare the current image to see if it's the "On" version.
+                //if (tsmi.Image.BytewiseCompare(ResxWriter.Properties.Resources.SB_DotOn)) { return; }
+                #endregion
 
                 // Update the image to indicate the process is in use.
                 UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOn);
@@ -636,11 +676,11 @@ namespace ResxWriter
                 _logProcess = Process.Start(Logger.Instance.LogPath);
 
                 // This was not reliable.
-                //_logProcess.Exited += (po, pe) => { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; };
+                //process.Exited += (po, pe) => { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; };
 
                 Task.Run(() =>
                 {
-                    while (!_logProcess.HasExited && !_closing) { Thread.Sleep(400); }
+                    while (!_logProcess.HasExited && !_closing) { Thread.Sleep(500); }
                     UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOff);
                     _logProcess = null;
                 });
@@ -656,9 +696,13 @@ namespace ResxWriter
             var tsmi = sender as ToolStripMenuItem;
             try
             {
-                // Don't re-enter if already active.
-                if (_settingsProcess != null) //if (tsmi.Image.BytewiseCompare(ResxWriter.Properties.Resources.SB_DotOn))
+                #region [Don't re-enter if already active]
+                if (_settingsProcess != null)
                     return;
+
+                // We could also compare the current image to see if it's the "On" version.
+                //if (tsmi.Image.BytewiseCompare(ResxWriter.Properties.Resources.SB_DotOn)) { return; }
+                #endregion
 
                 // Update the image to indicate the process is in use.
                 UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOn);
@@ -666,18 +710,17 @@ namespace ResxWriter
                 _settingsProcess = Process.Start(SettingsManager.Location);
 
                 // This was not reliable.
-                //_settingsProcess.Exited += (po, pe) => { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; };
+                //process.Exited += (po, pe) => { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; };
 
                 Task.Run(() =>
                 {
-                    while (!_settingsProcess.HasExited && !_closing) { Thread.Sleep(400); }
+                    while (!_settingsProcess.HasExited && !_closing) { Thread.Sleep(500); }
                     UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOff);
                     _settingsProcess = null;
                 });
             }
             catch (Exception) { tsmi.Image = ResxWriter.Properties.Resources.SB_DotOff; }
         }
-
 
         /// <summary>
         /// This is the event for the tool strip button when clicked.
@@ -691,9 +734,9 @@ namespace ResxWriter
 
         /// <summary>
         /// https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.control.paint?view=windowsdesktop-8.0
-        /// The Paint event is raised when the control is redrawn. It passes an instance of PaintEventArgs to the method(s)
-        /// that handles the Paint event. When creating a new custom control or an inherited control with a different visual
-        /// appearance, you must provide code to render the control by overriding the OnPaint method.
+        /// The Paint event is raised when the control is redrawn. It passes an instance of PaintEventArgs to the method
+        /// that handles the Paint event. When creating a new custom control or an inherited control with a different 
+        /// visual appearance, you must provide code to render the control by overriding the OnPaint method.
         /// </summary>
         void MainFormOnPaint(object sender, PaintEventArgs e)
         {
@@ -1025,22 +1068,22 @@ namespace ResxWriter
         void ShowMsgBoxInfo(string msg, string title)
         {
             //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Info, true);
-        }
-        void ShowMsgBoxWarning(string msg, string title)
-        {
-            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Warning, true);
-        }
-        void ShowMsgBoxError(string msg, string title)
-        {
-            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Error, true);
+            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Info, true, TimeSpan.FromSeconds(6));
         }
         void ShowMsgBoxSuccess(string msg, string title)
         {
             //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Success, true);
+            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Success, true, TimeSpan.FromSeconds(6));
+        }
+        void ShowMsgBoxWarning(string msg, string title)
+        {
+            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Warning, true, TimeSpan.Zero);
+        }
+        void ShowMsgBoxError(string msg, string title)
+        {
+            //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            frmMessage.Show($"{msg}", $"{title}", MessageLevel.Error, true, TimeSpan.Zero);
         }
 
         /// <summary>
@@ -1135,14 +1178,15 @@ namespace ResxWriter
             }
         }
 
+        /// <summary>
+        /// Uses the <see cref="TextRenderer"/> to measure the text size based on the standard application font.
+        /// </summary>
         Size GetApproximateTextSize(string text) => TextRenderer.MeasureText(text, _standardFont);
 
         void DrawText(string text)
         {
             if (_formPainter != null)
-            {
                 TextRenderer.DrawText(_formPainter, text, _standardFont, new Point(cbDelimiters.Right + 20, cbDelimiters.Top + 2), SystemColors.Highlight, SystemColors.HighlightText);
-            }
         }
 
         /// <summary>
@@ -1152,7 +1196,7 @@ namespace ResxWriter
         Icon GetApplicationIcon() => Utils.GetFileIcon(System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".exe", true);
 
         /// <summary>
-        /// Test method for adding a right-click option to the explorer shell.
+        /// Method for adding a right-click option to the explorer shell.
         /// </summary>
         void AddOpenWithOptionToExplorerShell(bool addToShell)
         {

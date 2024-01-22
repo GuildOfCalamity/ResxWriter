@@ -26,11 +26,12 @@ namespace ResxWriter
     {
         #region [Props]
         bool autoTab = false;
+        bool roundedForm = true;
         string okText = "OK"; //"Acknowledge"
         Label messageLabel;
         Button okButton;
         PictureBox pictureBox;
-        FormBorderStyle borderStyle = FormBorderStyle.FixedToolWindow; //FormBorderStyle.FixedDialog;
+        FormBorderStyle borderStyle = FormBorderStyle.FixedToolWindow;
         Point iconLocus = new Point(16, 56);
         Size iconSize = new Size(48, 48);
         Size mainFormSize = new Size(470, 190);
@@ -41,8 +42,23 @@ namespace ResxWriter
         Color clrWarning = Color.FromArgb(60, 50, 0);
         Color clrSuccess = Color.FromArgb(25, 45, 25);
         Color clrError = Color.FromArgb(45, 25, 25);
-        Color clrBackground = Color.FromArgb(28, 28, 28);
+        Color clrBackground = Color.FromArgb(35, 35, 35);
         Color clrMouseOver = Color.FromArgb(55, 55, 55);
+        System.Windows.Forms.Timer tmrClose = null;
+        #endregion
+
+        #region [Round Border]
+        const int WM_NCLBUTTONDOWN = 0xA1;
+        const int HT_CAPTION = 0x2;
+
+        [System.Runtime.InteropServices.DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
+        static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern bool ReleaseCapture();
         #endregion
 
         /// <summary>
@@ -50,11 +66,12 @@ namespace ResxWriter
         /// </summary>
         /// <param name="message">the text to display in the center of the dialog</param>
         /// <param name="title">the text to display on the title bar</param>
+        /// <param name="autoClose"><see cref="TimeSpan"/> to close the dialog, use <see cref="TimeSpan.Zero"/> or null for indefinite</param>
         /// <param name="level"><see cref="MessageLevel"/></param>
         /// <param name="addIcon">true to add the appropriate <see cref="MessageLevel"/> icon, false to hide the icon</param>
-        public static void Show(string message, string title, MessageLevel level = MessageLevel.Info, bool addIcon = false)
+        public static void Show(string message, string title, MessageLevel level = MessageLevel.Info, bool addIcon = false, TimeSpan? autoClose = null)
         {
-            using (var customMessageBox = new frmMessage(message, title, level, addIcon))
+            using (var customMessageBox = new frmMessage(message, title, level, addIcon, autoClose))
             {
                 customMessageBox.ShowDialog();
             }
@@ -63,15 +80,15 @@ namespace ResxWriter
         /// <summary>
         /// Constructor
         /// </summary>
-        frmMessage(string message, string title, MessageLevel level, bool addIcon)
+        frmMessage(string message, string title, MessageLevel level, bool addIcon, TimeSpan? autoClose)
         {
-            InitializeComponents(message, title, level, addIcon);
+            InitializeComponents(message, title, level, addIcon, autoClose);
         }
 
         /// <summary>
         /// Replaces the standard <see cref="InitializeComponent"/>.
         /// </summary>
-        void InitializeComponents(string message, string title, MessageLevel level, bool addIcon)
+        void InitializeComponents(string message, string title, MessageLevel level, bool addIcon, TimeSpan? autoClose)
         {
             #region [Form Background, Icon & Others]
             this.Text = title;
@@ -80,10 +97,17 @@ namespace ResxWriter
             this.BackColor = clrBackground;
             this.StartPosition = FormStartPosition.CenterParent;
             this.Icon = ResxWriter.Properties.Resources.App_Icon_ico;
+
             if (this.FormBorderStyle == FormBorderStyle.FixedDialog)
             {
                 this.MaximizeBox = false;
                 this.MinimizeBox = false;
+            }
+
+            if (roundedForm)
+            {
+                this.FormBorderStyle = FormBorderStyle.None;
+                this.Region = System.Drawing.Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 13, 13));
             }
 
             if (addIcon)
@@ -174,14 +198,61 @@ namespace ResxWriter
                     break;
             }
             okButton.Dock = DockStyle.Bottom;
-            okButton.Click += (sender, e) => this.Close();
-            this.Shown += (sender, e) => {
+            okButton.Click += (sender, e) => 
+            {
+                if (tmrClose != null)
+                {
+                    tmrClose.Stop();
+                    tmrClose.Dispose();
+                }
+                this.Close();
+            };
+            this.Shown += (sender, e) => 
+            {
                 this.ActiveControl = okButton;
                 if (autoTab)
                     SendKeys.SendWait("{TAB}");
             };
             this.Controls.Add(okButton);
             #endregion
+
+            if (roundedForm)
+            {   // Support dragging the dialog, since the message label will
+                // take up most of the real estate when there is no title bar.
+                messageLabel.MouseDown += (obj, mea) =>
+                {
+                    if (mea.Button == MouseButtons.Left)
+                    {
+                        ReleaseCapture();
+                        SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
+                    }
+                };
+            }
+
+            // Do we have a TimeSpan to observe?
+            if (autoClose != null && autoClose != TimeSpan.Zero && tmrClose == null)
+            {
+                tmrClose = new System.Windows.Forms.Timer();
+                var overflow = (int)autoClose.Value.TotalMilliseconds;
+                if (overflow == int.MinValue)
+                    overflow = int.MaxValue;
+                tmrClose.Interval = overflow;
+                tmrClose.Tick += TimerOnTick;
+                tmrClose.Start();
+            }
+        }
+
+        /// <summary>
+        /// Auto-close timer event.
+        /// </summary>
+        void TimerOnTick(object sender, EventArgs e)
+        {
+            if (tmrClose != null)
+            { 
+                tmrClose.Stop();
+                tmrClose.Dispose();
+                this.Close();
+            }
         }
 
         /// <summary>
