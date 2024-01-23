@@ -43,6 +43,9 @@ namespace ResxWriter
             this.lvContents = new System.Windows.Forms.ListView();
             this.columnHeaderKey = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.tbCodePage = new System.Windows.Forms.TextBox();
+            this.lblCodePage = new System.Windows.Forms.Label();
+            this.cbJSFile = new System.Windows.Forms.CheckBox();
             this.stbStatus = new ResxWriter.CustomStatusStrip();
             this.sbStatusPanel = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripSplitButton1 = new System.Windows.Forms.ToolStripSplitButton();
@@ -119,11 +122,12 @@ namespace ResxWriter
             this.cbMetadata.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.cbMetadata.Font = new System.Drawing.Font("Calibri", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cbMetadata.ForeColor = System.Drawing.Color.White;
-            this.cbMetadata.Location = new System.Drawing.Point(570, 58);
+            this.cbMetadata.Location = new System.Drawing.Point(749, 53);
             this.cbMetadata.Name = "cbMetadata";
-            this.cbMetadata.Size = new System.Drawing.Size(307, 28);
+            this.cbMetadata.Size = new System.Drawing.Size(128, 28);
             this.cbMetadata.TabIndex = 4;
-            this.cbMetadata.Text = "Add each item as metadata instead of resource";
+            this.cbMetadata.Text = "Add as metadata?";
+            this.cbMetadata.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.cbMetadata.UseVisualStyleBackColor = false;
             this.cbMetadata.CheckedChanged += new System.EventHandler(this.cbMetadata_CheckedChanged);
             // 
@@ -227,6 +231,52 @@ namespace ResxWriter
             this.columnHeaderValue.Text = "Value";
             this.columnHeaderValue.Width = 700;
             // 
+            // tbCodePage
+            // 
+            this.tbCodePage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
+            this.tbCodePage.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.tbCodePage.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tbCodePage.ForeColor = System.Drawing.Color.White;
+            this.tbCodePage.Location = new System.Drawing.Point(502, 54);
+            this.tbCodePage.Name = "tbCodePage";
+            this.tbCodePage.Size = new System.Drawing.Size(63, 27);
+            this.tbCodePage.TabIndex = 14;
+            this.tbCodePage.Text = "1252";
+            this.tbCodePage.TextChanged += new System.EventHandler(this.tbCodePage_TextChanged);
+            // 
+            // lblCodePage
+            // 
+            this.lblCodePage.AutoSize = true;
+            this.lblCodePage.BackColor = System.Drawing.Color.Transparent;
+            this.lblCodePage.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblCodePage.ForeColor = System.Drawing.Color.White;
+            this.lblCodePage.Location = new System.Drawing.Point(414, 57);
+            this.lblCodePage.Name = "lblCodePage";
+            this.lblCodePage.Size = new System.Drawing.Size(82, 19);
+            this.lblCodePage.TabIndex = 15;
+            this.lblCodePage.Text = "Code page:";
+            // 
+            // cbJSFile
+            // 
+            this.cbJSFile.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.cbJSFile.Appearance = System.Windows.Forms.Appearance.Button;
+            this.cbJSFile.AutoSize = true;
+            this.cbJSFile.BackColor = System.Drawing.Color.Transparent;
+            this.cbJSFile.FlatAppearance.BorderSize = 0;
+            this.cbJSFile.FlatAppearance.CheckedBackColor = System.Drawing.Color.DodgerBlue;
+            this.cbJSFile.FlatAppearance.MouseOverBackColor = System.Drawing.Color.SteelBlue;
+            this.cbJSFile.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cbJSFile.Font = new System.Drawing.Font("Calibri", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cbJSFile.ForeColor = System.Drawing.Color.White;
+            this.cbJSFile.Location = new System.Drawing.Point(663, 53);
+            this.cbJSFile.Name = "cbJSFile";
+            this.cbJSFile.Size = new System.Drawing.Size(79, 28);
+            this.cbJSFile.TabIndex = 16;
+            this.cbJSFile.Text = "Ouput JS?";
+            this.cbJSFile.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.cbJSFile.UseVisualStyleBackColor = false;
+            this.cbJSFile.CheckedChanged += new System.EventHandler(this.cbJSFile_CheckedChanged);
+            // 
             // stbStatus
             // 
             this.stbStatus.AutoSize = false;
@@ -262,7 +312,8 @@ namespace ResxWriter
             this.toolStripSplitButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.toolStripSplitButton1.DropDownButtonWidth = 14;
             this.toolStripSplitButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.openSettingsToolStripMenuItem, this.openLogToolStripMenuItem});
+            this.openSettingsToolStripMenuItem,
+            this.openLogToolStripMenuItem});
             this.toolStripSplitButton1.Image = global::ResxWriter.Properties.Resources.App_Settings;
             this.toolStripSplitButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.toolStripSplitButton1.Margin = new System.Windows.Forms.Padding(5, 2, 0, 0);
@@ -274,7 +325,7 @@ namespace ResxWriter
             this.openSettingsToolStripMenuItem.BackColor = System.Drawing.Color.DarkGray;
             this.openSettingsToolStripMenuItem.ForeColor = System.Drawing.Color.WhiteSmoke;
             this.openSettingsToolStripMenuItem.Name = "openSettingsToolStripMenuItem";
-            this.openSettingsToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
+            this.openSettingsToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
             this.openSettingsToolStripMenuItem.Text = "Open Settings";
             // 
             // openLogToolStripMenuItem
@@ -282,7 +333,7 @@ namespace ResxWriter
             this.openLogToolStripMenuItem.BackColor = System.Drawing.Color.DarkGray;
             this.openLogToolStripMenuItem.ForeColor = System.Drawing.Color.WhiteSmoke;
             this.openLogToolStripMenuItem.Name = "openLogToolStripMenuItem";
-            this.openLogToolStripMenuItem.Size = new System.Drawing.Size(180, 24);
+            this.openLogToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
             this.openLogToolStripMenuItem.Text = "Open Log";
             // 
             // frmMain
@@ -292,6 +343,9 @@ namespace ResxWriter
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(20)))));
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.ClientSize = new System.Drawing.Size(896, 525);
+            this.Controls.Add(this.cbJSFile);
+            this.Controls.Add(this.lblCodePage);
+            this.Controls.Add(this.tbCodePage);
             this.Controls.Add(this.stbStatus);
             this.Controls.Add(this.lvContents);
             this.Controls.Add(this.btnExit);
@@ -341,6 +395,9 @@ namespace ResxWriter
         private ToolStripSplitButton toolStripSplitButton1;
         private ToolStripMenuItem openLogToolStripMenuItem;
         private ToolStripMenuItem openSettingsToolStripMenuItem;
+        private TextBox tbCodePage;
+        private Label lblCodePage;
+        private CheckBox cbJSFile;
     }
 }
 

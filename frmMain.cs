@@ -38,6 +38,7 @@ namespace ResxWriter
         string _passedArg = string.Empty;
         string _genericError = "An error was detected.";
         bool _useMeta = false;
+        bool _outputJS = false;
         bool _closing = false;
         bool _showWarning = false;
         Color _clrWarning = Color.FromArgb(240, 180, 0);
@@ -51,6 +52,7 @@ namespace ResxWriter
         static RegistryMonitor _regMon = null;
         static Process _logProcess = null;
         static Process _settingsProcess = null;
+        int _codePage = 1252;
         #endregion
 
         #region [Animation]
@@ -133,6 +135,8 @@ namespace ResxWriter
                 tbFilePath.Text = lastPath;
             else
                 tbFilePath.Text = $"{Environment.CurrentDirectory}\\";
+
+            tbCodePage.Text = $"{SettingsManager.CodePage}";
 
             var lastDelimiter = SettingsManager.LastDelimiter;
 
@@ -220,7 +224,7 @@ namespace ResxWriter
             //regMon.Start();
             #endregion
 
-            #region [Test custom ComboBox control]
+            #region [Test ImageComboBox control]
             //ImageComboBox imageComboBox = new ImageComboBox(
             //    Color.FromArgb(250, 250, 250), 
             //    Color.FromArgb(20, 20, 20), 
@@ -333,7 +337,7 @@ namespace ResxWriter
                         tbFilePath.Text = filePath;
 
                         // Read the UTF-8 text file content.
-                        //string fileContent = File.ReadAllText(filePath, Encoding.UTF8);
+                        //string fileContent = File.ReadAllText(filePath, Encoding.GetEncoding(_codePage));
                     }
                     catch (Exception ex)
                     {
@@ -362,22 +366,12 @@ namespace ResxWriter
                     if (_userDelimiter.Equals("TAB"))
                         _userDelimiter = "\t";
 
-                    //if (!File.Exists(textContentTextBox.Text))
-                    //{
-                    //    UpdateStatusBar($"File does not exist, please check you path and try again.");
-                    //    return;
-                    //}
-
                     _userValues = ReadDelimitedFile(tbFilePath.Text, _userDelimiter[0]);
-
 
                     if (_userValues.Count > 0)
                     {
                         UpdateStatusBar($"File data has been loaded.  {_userValues.Count} items total.");
-                        
-                        if (_userValues.Count > 10)
-                            tbContents.ScrollBars = ScrollBars.Vertical;
-
+                        //if (_userValues.Count > 10) { tbContents.ScrollBars = ScrollBars.Vertical; }
                         Task.Run(() => FlashButton(btnGenerateResx));
                     }
                     else
@@ -449,6 +443,25 @@ namespace ResxWriter
                             }
                         }
 
+                        // Do we want the JS-style output for Angular pages?
+                        if (_outputJS)
+                        {
+                            var jsFile = $"{filePath}.js";
+                            if (File.Exists(jsFile)) { File.Delete(jsFile); }
+                            using (var fileStream = new StreamWriter(File.OpenWrite(jsFile), Encoding.GetEncoding(_codePage)))
+                            {
+                                // Jump to the beginning of the file before writing.
+                                fileStream.BaseStream.Seek(0, SeekOrigin.Begin);
+
+                                fileStream.WriteLine("{");
+                                foreach (var kvp in _userValues)
+                                {
+                                    fileStream.WriteLine($"   \"{kvp.Key}\": \"{kvp.Value}\",");
+                                }
+                                fileStream.WriteLine("}");
+                            }
+                        }
+
                         UpdateStatusBar("Resx file generated successfully.");
                         Logger.Instance.Write($"Resx file generated successfully: \"{filePath}\" ({_userValues.Count} items).", LogLevel.Success);
                         //ShowMsgBoxSuccess("Resx file generated successfully.", "Success");
@@ -473,6 +486,9 @@ namespace ResxWriter
             }
         }
 
+        /// <summary>
+        /// <see cref="ComboBox"/> event.
+        /// </summary>
         void cbDelimiters_SelectedIndexChanged(object sender, EventArgs e)
         {
             var cb = sender as ComboBox;
@@ -480,19 +496,9 @@ namespace ResxWriter
                 _userDelimiter = cb.Items[cb.SelectedIndex] as string;
         }
 
-        void cbMetadata_CheckedChanged(object sender, EventArgs e)
-        {
-            var cb = sender as CheckBox;
-            if (cb != null)
-            {
-                _useMeta = cb.Checked;
-                if (_useMeta)
-                    cb.Text = "Items will be added as metadata";
-                else
-                    cb.Text = "Items will be added as resources";
-            }
-        }
-
+        /// <summary>
+        /// <see cref="ComboBox"/> event.
+        /// </summary>
         void cbDelimiters_TextUpdate(object sender, EventArgs e)
         {
             if (!string.IsNullOrEmpty(cbDelimiters.Text))
@@ -502,11 +508,49 @@ namespace ResxWriter
             }
         }
 
+        /// <summary>
+        /// <see cref="CheckBox"/> event.
+        /// </summary>
+        void cbMetadata_CheckedChanged(object sender, EventArgs e)
+        {
+            var cb = sender as CheckBox;
+            if (cb != null)
+            {
+                _useMeta = cb.Checked;
+                if (_useMeta)
+                    cb.Text = "Metadata enabled";
+                else
+                    cb.Text = "Resource enabled";
+            }
+        }
+
+        /// <summary>
+        /// <see cref="CheckBox"/> event.
+        /// </summary>
+        void cbJSFile_CheckedChanged(object sender, EventArgs e)
+        {
+            var cb = sender as CheckBox;
+            if (cb != null)
+            {
+                _outputJS = cb.Checked;
+                if (_outputJS)
+                    cb.Text = "JS output enabled";
+                else
+                    cb.Text = "JS output disabled";
+            }
+        }
+
+        /// <summary>
+        /// <see cref="Button"/> event.
+        /// </summary>
         void btnExit_Click(object sender, EventArgs e)
         {
             Application.Exit();
         }
 
+        /// <summary>
+        /// <see cref="Form"/> event.
+        /// </summary>
         void frmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             try
@@ -545,6 +589,9 @@ namespace ResxWriter
             }
         }
 
+        /// <summary>
+        /// <see cref="ListView"/> event.
+        /// </summary>
         void lvContents_SelectedIndexChanged(object sender, EventArgs e)
         {
             // Right-click shouldn't change the selection.
@@ -595,6 +642,24 @@ namespace ResxWriter
                 _pathErrorProvider.SetError(tbFilePath, String.Empty);
             }
             _lastChange = DateTime.Now;
+        }
+
+        /// <summary>
+        /// <see cref="TextBox"/> event.
+        /// </summary>
+        void tbCodePage_TextChanged(object sender, EventArgs e)
+        {
+            var tb = sender as TextBox;
+            if (int.TryParse(tb.Text, out int cp))
+            {
+                _codePage = SettingsManager.CodePage = cp;
+                UpdateStatusBar("Converted value to code page.");
+            }
+            else
+            {
+                UpdateStatusBar("Unable to convert value to code page, defaulting to CP1252.");
+                _codePage = 1252;
+            }
         }
 
         /// <summary>
@@ -805,13 +870,17 @@ namespace ResxWriter
 
             try
             {
-                using (StreamReader sr = new StreamReader(filePath))
+                //var enc = Utils.DetermineFileEncoding(filePath, Encoding.GetEncoding(1252));
+                //Debug.WriteLine($"File encoding is codepage {enc.CodePage}.");
+
+                using (StreamReader sr = new StreamReader(filePath, Encoding.GetEncoding(_codePage)))
                 {
                     while (!sr.EndOfStream)
                     {
                         string line = sr.ReadLine();
                         if (!string.IsNullOrEmpty(line))
                         {
+                            line = line.Replace("\"", "");
                             string[] fields = line.Split(delimiter);
 
                             // Ensure there are at least two fields
@@ -1065,6 +1134,7 @@ namespace ResxWriter
             }
         }
 
+        #region [Custom dialog message]
         void ShowMsgBoxInfo(string msg, string title)
         {
             //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1085,6 +1155,7 @@ namespace ResxWriter
             //MessageBox.Show($"{msg}", $"{title}", MessageBoxButtons.OK, MessageBoxIcon.Error);
             frmMessage.Show($"{msg}", $"{title}", MessageLevel.Error, true, TimeSpan.Zero);
         }
+        #endregion
 
         /// <summary>
         /// To adjust the width of the longest item in the column, set the Width property to -1.
@@ -1183,6 +1254,9 @@ namespace ResxWriter
         /// </summary>
         Size GetApproximateTextSize(string text) => TextRenderer.MeasureText(text, _standardFont);
 
+        /// <summary>
+        /// Uses the <see cref="TextRenderer"/> to draw text based on the standard application font.
+        /// </summary>
         void DrawText(string text)
         {
             if (_formPainter != null)
@@ -1221,5 +1295,22 @@ namespace ResxWriter
             }
         }
         #endregion
+
+        /// <summary>
+        /// Print out the data using all available code pages.
+        /// The user can deside which looks correct.
+        /// </summary>
+        void TestAllEncodings()
+        {
+            var strFR = "Il s'agit d'un échantillon de période de dépassement à convertir à l'aide de la bibliothèque d'encodages.";
+            var encs = Encoding.GetEncodings();
+            foreach (var enc in encs)
+            {
+                Debug.WriteLine($"{enc.Name} [{enc.CodePage}]");
+                Encoding test = Encoding.GetEncoding(enc.CodePage);
+                var samp = test.GetBytes(strFR);
+                Debug.WriteLine($"{test.GetString(samp)}");
+            }
+        }
     }
 }

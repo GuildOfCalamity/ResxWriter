@@ -100,6 +100,188 @@ namespace ResxWriter
         #endregion
 
         /// <summary>
+        /// Returns the <see cref="Encoding"/> based on the <paramref name="codePage"/> passed.
+        /// Common code pages are "ISO-8859-1" or "Windows-1252".
+        /// </summary>
+        public static Encoding GetEncodingByCodePage(string codePage, Encoding fallback)
+        {
+            try 
+            { 
+                return Encoding.GetEncoding(codePage); 
+            }
+            catch (Exception) 
+            {
+                Debug.WriteLine($"Invalid code page: {codePage}");
+                if (fallback == null)
+                    return System.Text.Encoding.Default;
+                else
+                    return fallback;
+            }
+        }
+
+        /// <summary>
+        /// Returns the file's <see cref="Encoding"/>.
+        /// </summary>
+        public static Encoding DetermineFileEncoding(this string path, Encoding fallback)
+        {
+            try
+            {
+                System.IO.FileStream fs = new System.IO.FileStream(path, System.IO.FileMode.Open);
+                System.IO.StreamReader sr = new System.IO.StreamReader(fs);
+                System.Text.Encoding coding = sr.CurrentEncoding;
+                fs.Close(); fs.Dispose();
+                sr.Close(); sr.Dispose();
+                return coding;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"DetermineFileEncoding: {ex.Message}");
+                if (fallback == null)
+                    return System.Text.Encoding.Default;
+                else
+                    return fallback;
+            }
+        }
+
+        /// <summary>
+        /// Returns the <see cref="XmlDocument"/>'s <see cref="Encoding"/>.
+        /// </summary>
+        public static Encoding EncodingFromXMLDoc(this XmlDocument doc, Encoding fallback)
+        {
+            try
+            {
+                return Encoding.GetEncoding(((XmlDeclaration)doc.FirstChild).Encoding);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"EncodingFromXMLDoc: {ex.Message}");
+                if (fallback == null)
+                    return System.Text.Encoding.Default;
+                else
+                    return fallback;
+            }
+        }
+
+        /// <summary>
+        /// In this method, the first step is to check for the presence of a BOM (Byte Order Mark) in the byte
+        /// array. A BOM is a sequence of bytes at the beginning of a file that indicates the encoding of the 
+        /// data. If a BOM is present, the method returns the appropriate encoding.
+        /// If a BOM is not present, the method takes a sample of the data and tries to determine the encoding 
+        /// by counting the number of characters with values greater than 127 in the sample.The assumption is 
+        /// that encodings such as UTF-8 and UTF-7 will have fewer such characters than encodings like UTF-32 
+        /// and Unicode.
+        /// This method is not foolproof, and there may be cases where it fails to correctly detect the encoding, 
+        /// especially if the data contains a mixture of characters from multiple encodings. Nevertheless, it can 
+        /// be a useful starting point for determining the encoding of a byte array.
+        /// </summary>
+        /// <param name="byteArray">the array to analyze</param>
+        /// <returns><see cref="System.Text.Encoding"/></returns>
+        public static Encoding IdentifyEncoding(this byte[] byteArray)
+        {
+            // Nothing to do.
+            if (byteArray.Length == 0)
+                return Encoding.Default;
+
+            // Try to detect the encoding using the ByteOrderMark.
+            if (byteArray.Length >= 4)
+            {
+                if (byteArray[0] == 0x2b && byteArray[1] == 0x2f && byteArray[2] == 0x76) return Encoding.UTF7;
+                if (byteArray[0] == 0xef && byteArray[1] == 0xbb && byteArray[2] == 0xbf) return Encoding.UTF8;
+                if (byteArray[0] == 0xff && byteArray[1] == 0xfe) return Encoding.Unicode; //UTF-16LE
+                if (byteArray[0] == 0xfe && byteArray[1] == 0xff) return Encoding.BigEndianUnicode; //UTF-16BE
+                if (byteArray[0] == 0 && byteArray[1] == 0 && byteArray[2] == 0xfe && byteArray[3] == 0xff) return Encoding.UTF32;
+            }
+            else if (byteArray.Length >= 2)
+            {
+                if (byteArray[0] == 0xFE && byteArray[1] == 0xFF)
+                    return Encoding.BigEndianUnicode;
+                else if (byteArray[0] == 0xFF && byteArray[1] == 0xFE)
+                    return Encoding.Unicode;
+                else if (byteArray.Length >= 3 && byteArray[0] == 0xEF && byteArray[1] == 0xBB && byteArray[2] == 0xBF)
+                    return Encoding.UTF8;
+            }
+
+            // If the BOM is not present, try to detect the encoding using a sample of the data.
+            Encoding[] encodingsToTry = { Encoding.UTF8, Encoding.UTF7, Encoding.UTF32, Encoding.Unicode, Encoding.BigEndianUnicode };
+            // Encoding.ASCII should not be used since it does not preserve the 8th bit 
+            // and will result in all chars being lower than 127/0x7F. 01111111 = 127
+            int sampleSize = Math.Min(byteArray.Length, 1024);
+            foreach (Encoding encoding in encodingsToTry)
+            {
+                string sample = encoding.GetString(byteArray, 0, sampleSize);
+
+                int count = 0;
+                foreach (char c in sample)
+                {
+                    if (c > 127) // 0x7F (DEL)
+                        count++;
+                }
+
+                double ratio = (double)count / sampleSize;
+                Debug.WriteLine($"{encoding.EncodingName} => {ratio:N3}");
+                if (ratio <= 0.1)
+                    return encoding;
+            }
+
+            // If the encoding could not be determined, return default encoding.
+            return Encoding.Default;
+        }
+
+        /// <summary>
+        /// Iterates type infos for the <see cref="System.Windows.Forms.Form"/>.
+        /// </summary>
+        public static IEnumerable<Type> GetHierarchyFromForm(this Type element)
+        {
+            if (element.GetTypeInfo().IsSubclassOf(typeof(System.Windows.Forms.Form)) != true)
+                yield break;
+
+            Type current = element;
+            while (current != null && current != typeof(System.Windows.Forms.Form))
+            {
+                yield return current;
+                current = current.GetTypeInfo().BaseType;
+            }
+        }
+
+        /// <summary>
+        /// Applies a color scheme to the control and its children.
+        /// </summary>
+        /// <remarks>This method is recursive.</remarks>
+        public static void EnumerateAllControls(this Control root, int red = 230, int green = 230, int blue = 230)
+        {
+            if (root is Form frm)
+                frm.ForeColor = Color.FromArgb(red, green, blue);
+
+            foreach (Control cntrl in root.Controls)
+            {
+                Debug.WriteLine("Control: {0}, Parent: {1}, HasChildren: {2}", cntrl.Name, root.Name, cntrl.HasChildren);
+                if (cntrl is GroupBox gb) { gb.ForeColor = Color.FromArgb((int)(red / 1.5f), (int)(green / 1.5f), (int)(blue / 1.5f)); }
+                else if (cntrl is TextBox tb) { tb.ForeColor = Color.FromArgb((int)(red / 1.5f), (int)(green / 1.5f), (int)(blue / 1.5f)); }
+                else if (cntrl is RichTextBox rtb) { rtb.ForeColor = Color.FromArgb(red, green, blue); }
+                else if (cntrl is RadioButton rb) { rb.ForeColor = Color.FromArgb(red, green, blue); }
+                else if (cntrl is ComboBox cmb) { cmb.ForeColor = Color.FromArgb(red, green, blue); }
+                else if (cntrl is CheckBox cb) { cb.ForeColor = Color.FromArgb(red, green, blue); }
+                else if (cntrl is CheckedListBox clb) { clb.ForeColor = Color.FromArgb(red, green, blue); }
+                else if (cntrl is Label lbl) { lbl.ForeColor = Color.FromArgb(red / 2, green / 2, blue / 2); }
+                else if (cntrl is ListBox lb) { lb.ForeColor = Color.FromArgb((int)(red / 1.5f), (int)(green / 1.5f), (int)(blue / 1.5f)); }
+                else if (cntrl is ListView lv) { lv.ForeColor = Color.FromArgb(red, green, blue); }
+                else if (cntrl is TreeView tv) { tv.ForeColor = Color.FromArgb(red, green, blue); }
+                else if (cntrl is Panel pnl) { pnl.ForeColor = Color.FromArgb(red, green, blue); }
+                else if (cntrl is DateTimePicker dtp) { dtp.ForeColor = Color.FromArgb(red, green, blue); }
+                else if (cntrl is ProgressBar pb) { pb.ForeColor = Color.FromArgb(red, green, blue); }
+                else if (cntrl is NumericUpDown nud) { nud.ForeColor = Color.FromArgb(red, green, blue); }
+                else if (cntrl is Button bc)
+                {
+                    bc.FlatAppearance.BorderColor = Color.FromArgb(red / 2, blue / 2, green / 2);
+                    bc.ForeColor = Color.FromArgb(red, green, blue);
+                }
+
+                if (cntrl.Controls != null)
+                    EnumerateAllControls(cntrl);
+            }
+        }
+
+        /// <summary>
         /// Determines if <paramref name="c1"/> intersects with <paramref name="c2"/>.
         /// </summary>
         /// <returns>true if controls overlap, false otherwise</returns>
@@ -145,6 +327,10 @@ namespace ResxWriter
             }
         }
 
+        /// <summary>
+        /// Compares two <see cref="Image"/>s by their bytes to determine if they are the same.
+        /// </summary>
+        /// <returns>true if identical, false otherwise</returns>
         public static bool BytewiseCompare(this System.Drawing.Image img1, System.Drawing.Image img2)
         {
             var i1bytes = new byte[1];
@@ -163,6 +349,16 @@ namespace ResxWriter
             }
            
             return true; // no differences found
+        }
+
+        /// <summary>
+        /// Bitmap bitmap = Assembly.GetExecutingAssembly().LoadBitmapFromResource("Resources.Button01.png");
+        /// </summary>
+        /// <returns><see cref="System.Drawing.Bitmap"/></returns>
+        public static System.Drawing.Bitmap LoadBitmapFromResource(this System.Reflection.Assembly assembly, string imageResourcePath)
+        {
+            var stream = assembly.GetManifestResourceStream(imageResourcePath);
+            return stream != null ? new System.Drawing.Bitmap(stream) : null;
         }
 
         /// <summary>
@@ -202,6 +398,66 @@ namespace ResxWriter
             return tokens.Where(token => token.Length >= minLength);
         }
 
+        /// <summary>
+        /// <see cref="Func{T, TResult}"/> helper.
+        /// </summary>
+        /// <example>
+        /// <code>
+        ///   Func<int> f = () =>
+        ///   {
+        ///       var n = new Random().Next(1, 11);
+        ///       if (n < 9) { throw new Exception($"I don't like this number: {n}"); }
+        ///       return n;
+        ///   };
+        ///   try
+        ///   {
+        ///       var result = f.Retry(3);
+        ///       Debug.WriteLine($"Passed: {result}");
+        ///   }
+        ///   catch (Exception) { Debug.WriteLine($"Attempts exhausted!"); }
+        /// </code>
+        /// </example>
+        public static T Retry<T>(this Func<T> operation, int attempts = 3)
+        {
+            while (true)
+            {
+                try
+                {
+                    attempts--;
+                    return operation();
+                }
+                catch (Exception ex) when (attempts > 0)
+                {
+                    Debug.WriteLine($"Retry: {ex.Message}");
+                    Thread.Sleep(2000);
+                }
+            }
+        }
+
+        /// <summary>
+        /// IEnumerable file reader.
+        /// </summary>
+        public static IEnumerable<string> ReadFileLines(string path)
+        {
+            string line = string.Empty;
+
+            if (!File.Exists(path))
+                yield return line;
+            else
+            {
+                using (TextReader reader = File.OpenText(path))
+                {
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        yield return line;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// File reader with filtering.
+        /// </summary>
         public static List<string> ReadAllLines(string filePath)
         {
             List<string> results = new List<string>();
