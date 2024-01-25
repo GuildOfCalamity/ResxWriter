@@ -1,5 +1,4 @@
-﻿using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,6 +11,8 @@ using System.Resources;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
+using System.Web.Routing;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -53,6 +54,7 @@ namespace ResxWriter
         static Process _logProcess = null;
         static Process _settingsProcess = null;
         int _codePage = 1252;
+        Dictionary<string, string> _glyphs = new Dictionary<string, string>();
         #endregion
 
         #region [Animation]
@@ -244,6 +246,509 @@ namespace ResxWriter
             //this.Controls.Add(imageComboBox);
             //imageComboBox.ItemSelected += ImageComboBox_ItemSelected; // Subscribe to the custom event.
             #endregion
+
+            #region [Build Glyph Table]
+            // Look-up table. Some values referenced from https://www.toptal.com/designers/htmlarrows/letters/
+            _glyphs.Add("À", @"\u00C0"); // Letter A with grave
+            _glyphs.Add("Á", @"\u00C1"); // Letter A with acute
+            _glyphs.Add("Â", @"\u00C2"); // Letter A with circumflex
+            _glyphs.Add("Ã", @"\u00C3"); // Letter A with tilde
+            _glyphs.Add("Ä", @"\u00C4"); // Letter A with diaeresis
+            _glyphs.Add("Å", @"\u00C5"); // Letter A with ring above
+            _glyphs.Add("Æ", @"\u00C6"); // Ligature AE
+            _glyphs.Add("Ç", @"\u00C7"); // Letter C with cedilla
+            _glyphs.Add("È", @"\u00C8"); // Letter E with grave
+            _glyphs.Add("É", @"\u00C9"); // Letter E with acute
+            _glyphs.Add("Ê", @"\u00CA"); // Letter E with circumflex
+            _glyphs.Add("Ë", @"\u00CB"); // Letter E with diaeresis
+            _glyphs.Add("Ì", @"\u00CC"); // Letter I with grave
+            _glyphs.Add("Í", @"\u00CD"); // Letter I with acute
+            _glyphs.Add("Î", @"\u00CE"); // Letter I with circumflex
+            _glyphs.Add("Ï", @"\u00CF"); // Letter I with diaeresis
+            _glyphs.Add("Ð", @"\u00D0"); // Letter ETH
+            _glyphs.Add("Ñ", @"\u00D1"); // Letter N with tilde
+            _glyphs.Add("Ò", @"\u00D2"); // Letter O with grave
+            _glyphs.Add("Ó", @"\u00D3"); // Letter O with acute
+            _glyphs.Add("Ô", @"\u00D4"); // Letter O with circumflex
+            _glyphs.Add("Õ", @"\u00D5"); // Letter O with tilde
+            _glyphs.Add("Ö", @"\u00D6"); // Letter O with diaeresis
+            _glyphs.Add("Ø", @"\u00D8"); // Letter O with stroke
+            _glyphs.Add("Ù", @"\u00D9"); // Letter U with grave
+            _glyphs.Add("Ú", @"\u00DA"); // Letter U with acute
+            _glyphs.Add("Û", @"\u00DB"); // Letter U with circumflex
+            _glyphs.Add("Ü", @"\u00DC"); // Letter U with diaeresis
+            _glyphs.Add("Ý", @"\u00DD"); // Letter Y with acute
+            _glyphs.Add("Þ", @"\u00DE"); // Letter THORN
+            _glyphs.Add("ß", @"\u00DF"); // Letter sharp s = ess-zed
+            _glyphs.Add("à", @"\u00E0"); // Letter a with grave
+            _glyphs.Add("á", @"\u00E1"); // Letter a with acute
+            _glyphs.Add("â", @"\u00E2"); // Letter a with circumflex
+            _glyphs.Add("ã", @"\u00E3"); // Letter a with tilde
+            _glyphs.Add("ä", @"\u00E4"); // Letter a with diaeresis
+            _glyphs.Add("å", @"\u00E5"); // Letter a with ring above
+            _glyphs.Add("æ", @"\u00E6"); // Ligature ae
+            _glyphs.Add("ç", @"\u00E7"); // Letter c with cedilla
+            _glyphs.Add("è", @"\u00E8"); // Letter e with grave
+            _glyphs.Add("é", @"\u00E9"); // Letter e with acute
+            _glyphs.Add("ê", @"\u00EA"); // Letter e with circumflex
+            _glyphs.Add("ë", @"\u00EB"); // Letter e with diaeresis
+            _glyphs.Add("ì", @"\u00EC"); // Letter i with grave
+            _glyphs.Add("í", @"\u00ED"); // Letter i with acute
+            _glyphs.Add("î", @"\u00EE"); // Letter i with circumflex
+            _glyphs.Add("ï", @"\u00EF"); // Letter i with diaeresis
+            _glyphs.Add("ð", @"\u00F0"); // Letter eth
+            _glyphs.Add("ñ", @"\u00F1"); // Letter n with tilde
+            _glyphs.Add("ò", @"\u00F2"); // Letter o with grave
+            _glyphs.Add("ó", @"\u00F3"); // Letter o with acute
+            _glyphs.Add("ô", @"\u00F4"); // Letter o with circumflex
+            _glyphs.Add("õ", @"\u00F5"); // Letter o with tilde
+            _glyphs.Add("ö", @"\u00F6"); // Letter o with diaeresis
+            _glyphs.Add("ø", @"\u00F8"); // Letter o with stroke
+            _glyphs.Add("ù", @"\u00F9"); // Letter u with grave
+            _glyphs.Add("ú", @"\u00FA"); // Letter u with acute
+            _glyphs.Add("û", @"\u00FB"); // Letter u with circumflex
+            _glyphs.Add("ü", @"\u00FC"); // Letter u with diaeresis
+            _glyphs.Add("ý", @"\u00FD"); // Letter y with acute
+            _glyphs.Add("þ", @"\u00FE"); // Letter thorn
+            _glyphs.Add("ÿ", @"\u00FF"); // Letter y with diaeresis
+            _glyphs.Add("Ā", @"\u0100"); // Uppercase a With Macron                               
+            _glyphs.Add("ā", @"\u0101"); // Lowercase a With Macron                               
+            _glyphs.Add("Ă", @"\u0102"); // Uppercase a With Breve                                
+            _glyphs.Add("ă", @"\u0103"); // Lowercase a With Breve                                
+            _glyphs.Add("Ą", @"\u0104"); // Uppercase a With Ogonek                               
+            _glyphs.Add("ą", @"\u0105"); // Lowercase a With Ogonek                               
+            _glyphs.Add("Ć", @"\u0106"); // Uppercase C With Acute                                
+            _glyphs.Add("ć", @"\u0107"); // Lowercase C With Acute                                
+            _glyphs.Add("Ĉ", @"\u0108"); // Uppercase C With Circumflex                           
+            _glyphs.Add("ĉ", @"\u0109"); // Lowercase C With Circumflex                           
+            _glyphs.Add("Ċ", @"\u010A"); // Uppercase C With Dot Above                            
+            _glyphs.Add("ċ", @"\u010B"); // Lowercase C With Dot Above                            
+            _glyphs.Add("Č", @"\u010C"); // Uppercase C With Caron                                
+            _glyphs.Add("č", @"\u010D"); // Lowercase C With Caron                                
+            _glyphs.Add("Ď", @"\u010E"); // Uppercase D With Caron                                
+            _glyphs.Add("ď", @"\u010F"); // Lowercase D With Caron                                
+            _glyphs.Add("Đ", @"\u0110"); // Uppercase D With Stroke                               
+            _glyphs.Add("đ", @"\u0111"); // Lowercase D With Stroke                               
+            _glyphs.Add("Ē", @"\u0112"); // Uppercase E With Macron                               
+            _glyphs.Add("ē", @"\u0113"); // Lowercase E With Macron                               
+            _glyphs.Add("Ĕ", @"\u0114"); // Uppercase E With Breve                                
+            _glyphs.Add("ĕ", @"\u0115"); // Lowercase E With Breve                                
+            _glyphs.Add("Ė", @"\u0116"); // Uppercase E With Dot Above                            
+            _glyphs.Add("ė", @"\u0117"); // Lowercase E With Dot Above                            
+            _glyphs.Add("Ę", @"\u0118"); // Uppercase E With Ogonek                               
+            _glyphs.Add("ę", @"\u0119"); // Lowercase E With Ogonek                               
+            _glyphs.Add("Ě", @"\u011A"); // Uppercase E With Caron                                
+            _glyphs.Add("ě", @"\u011B"); // Lowercase E With Caron                                
+            _glyphs.Add("Ĝ", @"\u011C"); // Uppercase G With Circumflex                           
+            _glyphs.Add("ĝ", @"\u011D"); // Lowercase G With Circumflex                           
+            _glyphs.Add("Ğ", @"\u011E"); // Uppercase G With Breve                                
+            _glyphs.Add("ğ", @"\u011F"); // Lowercase G With Breve                                
+            _glyphs.Add("Ġ", @"\u0120"); // Uppercase G With Dot Above                            
+            _glyphs.Add("ġ", @"\u0121"); // Lowercase G With Dot Above                            
+            _glyphs.Add("Ģ", @"\u0122"); // Uppercase G With Cedilla                              
+            _glyphs.Add("ģ", @"\u0123"); // Lowercase G With Cedilla                              
+            _glyphs.Add("Ĥ", @"\u0124"); // Uppercase H With Circumflex                           
+            _glyphs.Add("ĥ", @"\u0125"); // Lowercase H With Circumflex                           
+            _glyphs.Add("Ħ", @"\u0126"); // Uppercase H With Stroke                               
+            _glyphs.Add("ħ", @"\u0127"); // Lowercase H With Stroke                               
+            _glyphs.Add("Ĩ", @"\u0128"); // Uppercase I With Tilde                                
+            _glyphs.Add("ĩ", @"\u0129"); // Lowercase I With Tilde                                
+            _glyphs.Add("Ī", @"\u012A"); // Uppercase I With Macron                               
+            _glyphs.Add("ī", @"\u012B"); // Lowercase I With Macron                               
+            _glyphs.Add("Ĭ", @"\u012C"); // Uppercase I With Breve                                
+            _glyphs.Add("ĭ", @"\u012D"); // Lowercase I With Breve                                
+            _glyphs.Add("Į", @"\u012E"); // Uppercase I With Ogonek                               
+            _glyphs.Add("į", @"\u012F"); // Lowercase I With Ogonek                               
+            _glyphs.Add("İ", @"\u0130"); // Uppercase I With Dot Above                            
+            _glyphs.Add("ı", @"\u0131"); // Lowercase Dotless I                                   
+            _glyphs.Add("Ĳ", @"\u0132"); // Latin Capital Ligature Ij                             
+            _glyphs.Add("ĳ", @"\u0133"); // Latin Small Ligature Ij                               
+            _glyphs.Add("Ĵ", @"\u0134"); // Uppercase J With Circumflex                           
+            _glyphs.Add("ĵ", @"\u0135"); // Lowercase J With Circumflex                           
+            _glyphs.Add("Ķ", @"\u0136"); // Uppercase K With Cedilla                              
+            _glyphs.Add("ķ", @"\u0137"); // Lowercase K With Cedilla                              
+            _glyphs.Add("ĸ", @"\u0138"); // Lowercase Kra                                         
+            _glyphs.Add("Ĺ", @"\u0139"); // Uppercase L With Acute                                
+            _glyphs.Add("ĺ", @"\u013A"); // Lowercase L With Acute                                
+            _glyphs.Add("Ļ", @"\u013B"); // Uppercase L With Cedilla                              
+            _glyphs.Add("ļ", @"\u013C"); // Lowercase L With Cedilla                              
+            _glyphs.Add("Ľ", @"\u013D"); // Uppercase L With Caron                                
+            _glyphs.Add("ľ", @"\u013E"); // Lowercase L With Caron                                
+            _glyphs.Add("Ŀ", @"\u013F"); // Uppercase L With Middle Dot                           
+            _glyphs.Add("ŀ", @"\u0140"); // Lowercase L With Middle Dot                           
+            _glyphs.Add("Ł", @"\u0141"); // Uppercase L With Stroke                               
+            _glyphs.Add("ł", @"\u0142"); // Lowercase L With Stroke                               
+            _glyphs.Add("Ń", @"\u0143"); // Uppercase N With Acute                                
+            _glyphs.Add("ń", @"\u0144"); // Lowercase N With Acute                                
+            _glyphs.Add("Ņ", @"\u0145"); // Uppercase N With Cedilla                              
+            _glyphs.Add("ņ", @"\u0146"); // Lowercase N With Cedilla                              
+            _glyphs.Add("Ň", @"\u0147"); // Uppercase N With Caron                                
+            _glyphs.Add("ň", @"\u0148"); // Lowercase N With Caron                                
+            _glyphs.Add("ŉ", @"\u0149"); // Lowercase N Preceded by Apostrophe                    
+            _glyphs.Add("Ŋ", @"\u014A"); // Uppercase Eng                                         
+            _glyphs.Add("ŋ", @"\u014B"); // Lowercase Eng                                         
+            _glyphs.Add("Ō", @"\u014C"); // Uppercase O With Macron                               
+            _glyphs.Add("ō", @"\u014D"); // Lowercase O With Macron                               
+            _glyphs.Add("Ŏ", @"\u014E"); // Uppercase O With Breve                                
+            _glyphs.Add("ŏ", @"\u014F"); // Lowercase O With Breve                                
+            _glyphs.Add("Ő", @"\u0150"); // Uppercase O With Double Acute                         
+            _glyphs.Add("ő", @"\u0151"); // Lowercase O With Double Acute                         
+            _glyphs.Add("Œ", @"\u0152"); // Uppercase Ligature OE                                 
+            _glyphs.Add("œ", @"\u0153"); // Lowercase Ligature oe                                 
+            _glyphs.Add("Ŕ", @"\u0154"); // Uppercase R With Acute                                
+            _glyphs.Add("ŕ", @"\u0155"); // Lowercase R With Acute                                
+            _glyphs.Add("Ŗ", @"\u0156"); // Uppercase R With Cedilla                              
+            _glyphs.Add("ŗ", @"\u0157"); // Lowercase R With Cedilla                              
+            _glyphs.Add("Ř", @"\u0158"); // Uppercase R With Caron                                
+            _glyphs.Add("ř", @"\u0159"); // Lowercase R With Caron                                
+            _glyphs.Add("Ś", @"\u015A"); // Uppercase S With Acute                                
+            _glyphs.Add("ś", @"\u015B"); // Lowercase S With Acute                                
+            _glyphs.Add("Ŝ", @"\u015C"); // Uppercase S With Circumflex                           
+            _glyphs.Add("ŝ", @"\u015D"); // Lowercase S With Circumflex                           
+            _glyphs.Add("Ş", @"\u015E"); // Uppercase S With Cedilla                              
+            _glyphs.Add("ş", @"\u015F"); // Lowercase S With Cedilla                              
+            _glyphs.Add("Š", @"\u0160"); // Uppercase S With Caron                                
+            _glyphs.Add("š", @"\u0161"); // Lowercase S With Caron
+            _glyphs.Add("Ţ", @"\u0162"); // Uppercase T With Cedilla                              
+            _glyphs.Add("ţ", @"\u0163"); // Lowercase T With Cedilla                              
+            _glyphs.Add("Ť", @"\u0164"); // Uppercase T With Caron                                
+            _glyphs.Add("ť", @"\u0165"); // Lowercase T With Caron                                
+            _glyphs.Add("Ŧ", @"\u0166"); // Uppercase T With Stroke                               
+            _glyphs.Add("ŧ", @"\u0167"); // Lowercase T With Stroke                               
+            _glyphs.Add("Ũ", @"\u0168"); // Uppercase U With Tilde                                
+            _glyphs.Add("ũ", @"\u0169"); // Lowercase U With Tilde                                
+            _glyphs.Add("Ū", @"\u016A"); // Uppercase U With Macron                               
+            _glyphs.Add("ū", @"\u016B"); // Lowercase U With Macron                               
+            _glyphs.Add("Ŭ", @"\u016C"); // Uppercase U With Breve                                
+            _glyphs.Add("ŭ", @"\u016D"); // Lowercase U With Breve                                
+            _glyphs.Add("Ů", @"\u016E"); // Uppercase U With Ring Above                           
+            _glyphs.Add("ů", @"\u016F"); // Lowercase U With Ring Above                           
+            _glyphs.Add("Ű", @"\u0170"); // Uppercase U With Double Acute                         
+            _glyphs.Add("ű", @"\u0171"); // Lowercase U With Double Acute                         
+            _glyphs.Add("Ų", @"\u0172"); // Uppercase U With Ogonek                               
+            _glyphs.Add("ų", @"\u0173"); // Lowercase U With Ogonek                               
+            _glyphs.Add("Ŵ", @"\u0174"); // Uppercase W With Circumflex                           
+            _glyphs.Add("ŵ", @"\u0175"); // Lowercase W With Circumflex                           
+            _glyphs.Add("Ŷ", @"\u0176"); // Uppercase Y With Circumflex                           
+            _glyphs.Add("ŷ", @"\u0177"); // Lowercase Y With Circumflex                           
+            _glyphs.Add("Ÿ", @"\u0178"); // Uppercase Y With Diaeresis                            
+            _glyphs.Add("Ź", @"\u0179"); // Uppercase Z With Acute                                
+            _glyphs.Add("ź", @"\u017A"); // Lowercase Z With Acute                                
+            _glyphs.Add("Ż", @"\u017B"); // Uppercase Z With Dot Above                            
+            _glyphs.Add("ż", @"\u017C"); // Lowercase Z With Dot Above                            
+            _glyphs.Add("Ž", @"\u017D"); // Uppercase Z With Caron                                
+            _glyphs.Add("ž", @"\u017E"); // Lowercase Z With Caron
+            _glyphs.Add("ſ", @"\u017F"); // Lowercase Long S                              
+            _glyphs.Add("ƀ", @"\u0180"); // Lowercase B With Stroke                       
+            _glyphs.Add("Ɖ", @"\u0189"); // Uppercase African D                           
+            _glyphs.Add("Ɗ", @"\u018A"); // Uppercase D With Hook                         
+            _glyphs.Add("Ƌ", @"\u018B"); // Uppercase D With Topbar                       
+            _glyphs.Add("ƌ", @"\u018C"); // Lowercase D With Topbar                       
+            _glyphs.Add("ƍ", @"\u018D"); // Lowercase Turned Delta                        
+            _glyphs.Add("Ǝ", @"\u018E"); // Uppercase Reversed E                          
+            _glyphs.Add("Ə", @"\u018F"); // Uppercase Schwa                               
+            _glyphs.Add("Ɛ", @"\u0190"); // Uppercase Open E                              
+            _glyphs.Add("Ƒ", @"\u0191"); // Uppercase F With Hook                         
+            _glyphs.Add("ƒ", @"\u0192"); // Lowercase F With Hook                         
+            _glyphs.Add("Ɠ", @"\u0193"); // Uppercase G With Hook                         
+            _glyphs.Add("Ɣ", @"\u0194"); // Uppercase Gamma                               
+            _glyphs.Add("ƕ", @"\u0195"); // Lowercase Hv                                  
+            _glyphs.Add("Ɩ", @"\u0196"); // Uppercase Iota                                
+            _glyphs.Add("Ɨ", @"\u0197"); // Uppercase I With Stroke                       
+            _glyphs.Add("Ƙ", @"\u0198"); // Uppercase K With Hook                         
+            _glyphs.Add("ƙ", @"\u0199"); // Lowercase K With Hook                         
+            _glyphs.Add("ƚ", @"\u019A"); // Lowercase L With Bar                          
+            _glyphs.Add("ƛ", @"\u019B"); // Lowercase Lambda With Stroke                  
+            _glyphs.Add("Ɯ", @"\u019C"); // Uppercase Turned M                            
+            _glyphs.Add("Ɲ", @"\u019D"); // Uppercase N With Left Hook                    
+            _glyphs.Add("ƞ", @"\u019E"); // Lowercase N With Long Right Leg               
+            _glyphs.Add("Ɵ", @"\u019F"); // Uppercase O With Middle Tilde                 
+            _glyphs.Add("Ơ", @"\u01A0"); // Uppercase O With Horn                         
+            _glyphs.Add("ơ", @"\u01A1"); // Lowercase O With Horn                         
+            _glyphs.Add("Ƣ", @"\u01A2"); // Uppercase Oi                                  
+            _glyphs.Add("ƣ", @"\u01A3"); // Lowercase Oi                                  
+            _glyphs.Add("Ƥ", @"\u01A4"); // Uppercase P With Hook                         
+            _glyphs.Add("ƥ", @"\u01A5"); // Lowercase P With Hook                         
+            _glyphs.Add("Ʀ", @"\u01A6"); // Latin Letter Yr                               
+            _glyphs.Add("Ƨ", @"\u01A7"); // Uppercase Tone Two                            
+            _glyphs.Add("ƨ", @"\u01A8"); // Lowercase Tone Two                            
+            _glyphs.Add("Ʃ", @"\u01A9"); // Uppercase Esh                                 
+            _glyphs.Add("ƪ", @"\u01AA"); // Latin Letter Reversed Esh Loop                
+            _glyphs.Add("ƫ", @"\u01AB"); // Lowercase T With Palatal Hook                 
+            _glyphs.Add("Ƭ", @"\u01AC"); // Uppercase T With Hook                         
+            _glyphs.Add("ƭ", @"\u01AD"); // Lowercase T With Hook                         
+            _glyphs.Add("Ʈ", @"\u01AE"); // Uppercase T With Retroflex Hook               
+            _glyphs.Add("Ư", @"\u01AF"); // Uppercase U With Horn                         
+            _glyphs.Add("ư", @"\u01B0"); // Lowercase U With Horn                         
+            _glyphs.Add("Ʊ", @"\u01B1"); // Uppercase Upsilon                             
+            _glyphs.Add("Ʋ", @"\u01B2"); // Uppercase v With Hook                         
+            _glyphs.Add("Ƴ", @"\u01B3"); // Uppercase Y With Hook                         
+            _glyphs.Add("ƴ", @"\u01B4"); // Lowercase Y With Hook                         
+            _glyphs.Add("Ƶ", @"\u01B5"); // Uppercase Z With Stroke                       
+            _glyphs.Add("ƶ", @"\u01B6"); // Lowercase Z With Stroke                       
+            _glyphs.Add("Ʒ", @"\u01B7"); // Uppercase Ezh                                 
+            _glyphs.Add("Ƹ", @"\u01B8"); // Uppercase Ezh Reversed                        
+            _glyphs.Add("ƹ", @"\u01B9"); // Lowercase Ezh Reversed                        
+            _glyphs.Add("ƺ", @"\u01BA"); // Lowercase Ezh With Tail                       
+            _glyphs.Add("ƻ", @"\u01BB"); // Latin Letter Two With Stroke                  
+            _glyphs.Add("Ƽ", @"\u01BC"); // Uppercase Tone Five                           
+            _glyphs.Add("ƽ", @"\u01BD"); // Lowercase Tone Five                           
+            _glyphs.Add("ƾ", @"\u01BE"); // Latin Letter Inverted Glottal Stop With Stroke
+            _glyphs.Add("ƿ", @"\u01BF"); // Latin Letter Wynn                             
+            _glyphs.Add("ǀ", @"\u01C0"); // Latin Letter Dental Click                     
+            _glyphs.Add("ǁ", @"\u01C1"); // Latin Letter Lateral Click                    
+            _glyphs.Add("ǂ", @"\u01C2"); // Latin Letter Alveolar Click                   
+            _glyphs.Add("ǃ", @"\u01C3"); // Latin Letter Retroflex Click                  
+            _glyphs.Add("Ǆ", @"\u01C4"); // Uppercase Dz With Caron                       
+            _glyphs.Add("ǅ", @"\u01C5"); // Uppercase D With Small Letter Z With Caron    
+            _glyphs.Add("ǆ", @"\u01C6"); // Lowercase Dz With Caron                       
+            _glyphs.Add("Ǉ", @"\u01C7"); // Uppercase Lj                                  
+            _glyphs.Add("ǈ", @"\u01C8"); // Uppercase L With Small Letter J               
+            _glyphs.Add("ǉ", @"\u01C9"); // Lowercase Lj                                  
+            _glyphs.Add("Ǌ", @"\u01CA"); // Uppercase Nj                                  
+            _glyphs.Add("ǋ", @"\u01CB"); // Uppercase N With Small Letter J               
+            _glyphs.Add("ǌ", @"\u01CC"); // Lowercase Nj                                  
+            _glyphs.Add("Ǎ", @"\u01CD"); // Uppercase a With Caron                        
+            _glyphs.Add("ǎ", @"\u01CE"); // Lowercase a With Caron                        
+            _glyphs.Add("Ǐ", @"\u01CF"); // Uppercase I With Caron                        
+            _glyphs.Add("ǐ", @"\u01D0"); // Lowercase I With Caron                        
+            _glyphs.Add("Ǒ", @"\u01D1"); // Uppercase O With Caron                        
+            _glyphs.Add("ǒ", @"\u01D2"); // Lowercase O With Caron                        
+            _glyphs.Add("Ǔ", @"\u01D3"); // Uppercase U With Caron                        
+            _glyphs.Add("ǔ", @"\u01D4"); // Lowercase U With Caron                        
+            _glyphs.Add("Ǖ", @"\u01D5"); // Uppercase U With Diaeresis and Macron         
+            _glyphs.Add("ǖ", @"\u01D6"); // Lowercase U With Diaeresis and Macron         
+            _glyphs.Add("Ǘ", @"\u01D7"); // Uppercase U With Diaeresis and Acute          
+            _glyphs.Add("ǘ", @"\u01D8"); // Lowercase U With Diaeresis and Acute          
+            _glyphs.Add("Ǚ", @"\u01D9"); // Uppercase U With Diaeresis and Caron          
+            _glyphs.Add("ǚ", @"\u01DA"); // Lowercase U With Diaeresis and Caron          
+            _glyphs.Add("Ǜ", @"\u01DB"); // Uppercase U With Diaeresis and Grave          
+            _glyphs.Add("ǜ", @"\u01DC"); // Lowercase U With Diaeresis and Grave          
+            _glyphs.Add("ǝ", @"\u01DD"); // Lowercase Turned E                            
+            _glyphs.Add("Ǟ", @"\u01DE"); // Uppercase a With Diaeresis and Macron         
+            _glyphs.Add("ǟ", @"\u01DF"); // Lowercase a With Diaeresis and Macron         
+            _glyphs.Add("Ǡ", @"\u01E0"); // Uppercase a With Dot Above and Macron         
+            _glyphs.Add("ǡ", @"\u01E1"); // Lowercase a With Dot Above and Macron         
+            _glyphs.Add("Ǣ", @"\u01E2"); // Uppercase Ae With Macron                      
+            _glyphs.Add("ǣ", @"\u01E3"); // Lowercase Ae With Macron                      
+            _glyphs.Add("Ǥ", @"\u01E4"); // Uppercase G With Stroke                       
+            _glyphs.Add("ǥ", @"\u01E5"); // Lowercase G With Stroke                       
+            _glyphs.Add("Ǧ", @"\u01E6"); // Uppercase G With Caron                        
+            _glyphs.Add("ǧ", @"\u01E7"); // Lowercase G With Caron                        
+            _glyphs.Add("Ǩ", @"\u01E8"); // Uppercase K With Caron                        
+            _glyphs.Add("ǩ", @"\u01E9"); // Lowercase K With Caron                        
+            _glyphs.Add("Ǫ", @"\u01EA"); // Uppercase O With Ogonek                       
+            _glyphs.Add("ǫ", @"\u01EB"); // Lowercase O With Ogonek                       
+            _glyphs.Add("Ǭ", @"\u01EC"); // Uppercase O With Ogonek and Macron            
+            _glyphs.Add("ǭ", @"\u01ED"); // Lowercase O With Ogonek and Macron            
+            _glyphs.Add("Ǯ", @"\u01EE"); // Uppercase Ezh With Caron                      
+            _glyphs.Add("ǯ", @"\u01EF"); // Lowercase Ezh With Caron                      
+            _glyphs.Add("ǰ", @"\u01F0"); // Lowercase J With Caron                        
+            _glyphs.Add("Ǳ", @"\u01F1"); // Uppercase Dz                                  
+            _glyphs.Add("ǲ", @"\u01F2"); // Uppercase D With Small Letter Z               
+            _glyphs.Add("ǳ", @"\u01F3"); // Lowercase Dz                                  
+            _glyphs.Add("Ǵ", @"\u01F4"); // Uppercase G With Acute                        
+            _glyphs.Add("ǵ", @"\u01F5"); // Lowercase G With Acute                        
+            _glyphs.Add("Ƕ", @"\u01F6"); // Uppercase Hwair                               
+            _glyphs.Add("Ƿ", @"\u01F7"); // Uppercase Wynn                                
+            _glyphs.Add("Ǹ", @"\u01F8"); // Uppercase N With Grave                        
+            _glyphs.Add("ǹ", @"\u01F9"); // Lowercase N With Grave                        
+            _glyphs.Add("Ǻ", @"\u01FA"); // Uppercase a With Ring Above and Acute         
+            _glyphs.Add("ǻ", @"\u01FB"); // Lowercase a With Ring Above and Acute         
+            _glyphs.Add("Ǽ", @"\u01FC"); // Uppercase Ae With Acute                       
+            _glyphs.Add("ǽ", @"\u01FD"); // Lowercase Ae With Acute                       
+            _glyphs.Add("Ǿ", @"\u01FE"); // Uppercase O With Stroke and Acute             
+            _glyphs.Add("ǿ", @"\u01FF"); // Lowercase O With Stroke and Acute             
+            _glyphs.Add("Ȁ", @"\u0200"); // Uppercase a With Double Grave                 
+            _glyphs.Add("ȁ", @"\u0201"); // Lowercase a With Double Grave                 
+            _glyphs.Add("Ȃ", @"\u0202"); // Uppercase a With Inverted Breve               
+            _glyphs.Add("ȃ", @"\u0203"); // Lowercase a With Inverted Breve               
+            _glyphs.Add("Ȅ", @"\u0204"); // Uppercase E With Double Grave                 
+            _glyphs.Add("ȅ", @"\u0205"); // Lowercase E With Double Grave                 
+            _glyphs.Add("Ȇ", @"\u0206"); // Uppercase E With Inverted Breve               
+            _glyphs.Add("ȇ", @"\u0207"); // Lowercase E With Inverted Breve               
+            _glyphs.Add("Ȉ", @"\u0208"); // Uppercase I With Double Grave                 
+            _glyphs.Add("ȉ", @"\u0209"); // Lowercase I With Double Grave                 
+            _glyphs.Add("Ȋ", @"\u020A"); // Uppercase I With Inverted Breve               
+            _glyphs.Add("ȋ", @"\u020B"); // Lowercase I With Inverted Breve               
+            _glyphs.Add("Ȍ", @"\u020C"); // Uppercase O With Double Grave                 
+            _glyphs.Add("ȍ", @"\u020D"); // Lowercase O With Double Grave                 
+            _glyphs.Add("Ȏ", @"\u020E"); // Uppercase O With Inverted Breve               
+            _glyphs.Add("ȏ", @"\u020F"); // Lowercase O With Inverted Breve               
+            _glyphs.Add("Ȑ", @"\u0210"); // Uppercase R With Double Grave                 
+            _glyphs.Add("ȑ", @"\u0211"); // Lowercase R With Double Grave                 
+            _glyphs.Add("Ȓ", @"\u0212"); // Uppercase R With Inverted Breve               
+            _glyphs.Add("ȓ", @"\u0213"); // Lowercase R With Inverted Breve               
+            _glyphs.Add("Ȕ", @"\u0214"); // Uppercase U With Double Grave                 
+            _glyphs.Add("ȕ", @"\u0215"); // Lowercase U With Double Grave                 
+            _glyphs.Add("Ȗ", @"\u0216"); // Uppercase U With Inverted Breve               
+            _glyphs.Add("ȗ", @"\u0217"); // Lowercase U With Inverted Breve               
+            _glyphs.Add("Ș", @"\u0218"); // Uppercase S With Comma Below                  
+            _glyphs.Add("ș", @"\u0219"); // Lowercase S With Comma Below                  
+            _glyphs.Add("Ț", @"\u021A"); // Uppercase T With Comma Below                  
+            _glyphs.Add("ț", @"\u021B"); // Lowercase T With Comma Below                  
+            _glyphs.Add("Ȝ", @"\u021C"); // Uppercase Yogh                                
+            _glyphs.Add("ȝ", @"\u021D"); // Lowercase Yogh                                
+            _glyphs.Add("Ȟ", @"\u021E"); // Uppercase H With Caron                        
+            _glyphs.Add("ȟ", @"\u021F"); // Lowercase H With Caron                        
+            _glyphs.Add("Ƞ", @"\u0220"); // Uppercase N With Long Right Leg               
+            _glyphs.Add("ȡ", @"\u0221"); // Lowercase D With Curl                         
+            _glyphs.Add("Ȣ", @"\u0222"); // Uppercase Ou                                  
+            _glyphs.Add("ȣ", @"\u0223"); // Lowercase Ou                                  
+            _glyphs.Add("Ȥ", @"\u0224"); // Uppercase Z With Hook                         
+            _glyphs.Add("ȥ", @"\u0225"); // Lowercase Z With Hook                         
+            _glyphs.Add("Ȧ", @"\u0226"); // Uppercase a With Dot Above                    
+            _glyphs.Add("ȧ", @"\u0227"); // Lowercase a With Dot Above                    
+            _glyphs.Add("Ȩ", @"\u0228"); // Uppercase E With Cedilla                      
+            _glyphs.Add("ȩ", @"\u0229"); // Lowercase E With Cedilla                      
+            _glyphs.Add("Ȫ", @"\u022A"); // Uppercase O With Diaeresis and Macron         
+            _glyphs.Add("ȫ", @"\u022B"); // Lowercase O With Diaeresis and Macron         
+            _glyphs.Add("Ȭ", @"\u022C"); // Uppercase O With Tilde and Macron             
+            _glyphs.Add("ȭ", @"\u022D"); // Lowercase O With Tilde and Macron             
+            _glyphs.Add("Ȯ", @"\u022E"); // Uppercase O With Dot Above                    
+            _glyphs.Add("ȯ", @"\u022F"); // Lowercase O With Dot Above                    
+            _glyphs.Add("Ȱ", @"\u0230"); // Uppercase O With Dot Above and Macron         
+            _glyphs.Add("ȱ", @"\u0231"); // Lowercase O With Dot Above and Macron         
+            _glyphs.Add("Ȳ", @"\u0232"); // Uppercase Y With Macron                       
+            _glyphs.Add("ȳ", @"\u0233"); // Lowercase Y With Macron                       
+            _glyphs.Add("ȴ", @"\u0234"); // Lowercase L With Curl                             
+            _glyphs.Add("ȵ", @"\u0235"); // Lowercase N With Curl                             
+            _glyphs.Add("ȶ", @"\u0236"); // Lowercase T With Curl                             
+            _glyphs.Add("ȷ", @"\u0237"); // Lowercase Dotless J                               
+            _glyphs.Add("ȸ", @"\u0238"); // Lowercase Db Digraph                              
+            _glyphs.Add("ȹ", @"\u0239"); // Lowercase Qp Digraph                              
+            _glyphs.Add("Ⱥ", @"\u023A"); // Uppercase a With Stroke                           
+            _glyphs.Add("Ȼ", @"\u023B"); // Uppercase C With Stroke                           
+            _glyphs.Add("ȼ", @"\u023C"); // Lowercase C With Stroke                           
+            _glyphs.Add("Ƚ", @"\u023D"); // Uppercase L With Bar                              
+            _glyphs.Add("Ⱦ", @"\u023E"); // Uppercase T With Diagonal Stroke                  
+            _glyphs.Add("ȿ", @"\u023F"); // Lowercase S With Swash Tail                       
+            _glyphs.Add("ɀ", @"\u0240"); // Lowercase Z With Swash Tail                       
+            _glyphs.Add("Ɂ", @"\u0241"); // Uppercase Glottal Stop                            
+            _glyphs.Add("ɂ", @"\u0242"); // Lowercase Glottal Stop                            
+            _glyphs.Add("Ƀ", @"\u0243"); // Uppercase B With Stroke                           
+            _glyphs.Add("Ʉ", @"\u0244"); // Uppercase U Bar                                   
+            _glyphs.Add("Ʌ", @"\u0245"); // Uppercase Turned V                                
+            _glyphs.Add("Ɇ", @"\u0246"); // Uppercase E With Stroke                           
+            _glyphs.Add("ɇ", @"\u0247"); // Lowercase E With Stroke                           
+            _glyphs.Add("Ɉ", @"\u0248"); // Uppercase J With Stroke                           
+            _glyphs.Add("ɉ", @"\u0249"); // Lowercase J With Stroke                           
+            _glyphs.Add("Ɋ", @"\u024A"); // Uppercase Small Q With Hook Tail                  
+            _glyphs.Add("ɋ", @"\u024B"); // Lowercase Q With Hook Tail                        
+            _glyphs.Add("Ɍ", @"\u024C"); // Uppercase R With Stroke                           
+            _glyphs.Add("ɍ", @"\u024D"); // Lowercase R With Stroke                           
+            _glyphs.Add("Ɏ", @"\u024E"); // Uppercase Y With Stroke                           
+            _glyphs.Add("ɏ", @"\u024F"); // Lowercase Y With Stroke                           
+            _glyphs.Add("ɐ", @"\u0250"); // Lowercase Turned A                                
+            _glyphs.Add("ɑ", @"\u0251"); // Lowercase Alpha                                   
+            _glyphs.Add("ɒ", @"\u0252"); // Lowercase Turned Alpha                            
+            _glyphs.Add("ɓ", @"\u0253"); // Lowercase B With Hook                             
+            _glyphs.Add("ɔ", @"\u0254"); // Lowercase Open O                                  
+            _glyphs.Add("ɕ", @"\u0255"); // Lowercase C With Curl                             
+            _glyphs.Add("ɖ", @"\u0256"); // Lowercase D With Tail                             
+            _glyphs.Add("ɗ", @"\u0257"); // Lowercase D With Hook                             
+            _glyphs.Add("ɘ", @"\u0258"); // Lowercase Reversed E                              
+            _glyphs.Add("ə", @"\u0259"); // Lowercase Schwa                                   
+            _glyphs.Add("ɚ", @"\u025A"); // Lowercase Schwa With Hook                         
+            _glyphs.Add("ɛ", @"\u025B"); // Lowercase Open E                                  
+            _glyphs.Add("ɜ", @"\u025C"); // Lowercase Reversed Open E                         
+            _glyphs.Add("ɝ", @"\u025D"); // Lowercase Reversed Open E With Hook               
+            _glyphs.Add("ɞ", @"\u025E"); // Lowercase Closed Reversed Open E                  
+            _glyphs.Add("ɟ", @"\u025F"); // Lowercase Dotless J With Stroke                   
+            _glyphs.Add("ɠ", @"\u0260"); // Lowercase G With Hook                             
+            _glyphs.Add("ɡ", @"\u0261"); // Lowercase Script G                                
+            _glyphs.Add("ɢ", @"\u0262"); // Latin Letter Small Capital G                      
+            _glyphs.Add("ɣ", @"\u0263"); // Lowercase Gamma                                   
+            _glyphs.Add("ɤ", @"\u0264"); // Lowercase Rams Horn                               
+            _glyphs.Add("ɥ", @"\u0265"); // Lowercase Turned H                                
+            _glyphs.Add("ɦ", @"\u0266"); // Lowercase H With Hook                             
+            _glyphs.Add("ɧ", @"\u0267"); // Lowercase Heng With Hook                          
+            _glyphs.Add("ɨ", @"\u0268"); // Lowercase I With Stroke                           
+            _glyphs.Add("ɩ", @"\u0269"); // Lowercase Iota                                    
+            _glyphs.Add("ɪ", @"\u026A"); // Latin Letter Small Capital I                      
+            _glyphs.Add("ɫ", @"\u026B"); // Lowercase L With Middle Tilde                     
+            _glyphs.Add("ɬ", @"\u026C"); // Lowercase L With Belt                             
+            _glyphs.Add("ɭ", @"\u026D"); // Lowercase L With Retroflex Hook                   
+            _glyphs.Add("ɮ", @"\u026E"); // Lowercase Lezh                                    
+            _glyphs.Add("ɯ", @"\u026F"); // Lowercase Turned M                                
+            _glyphs.Add("ɰ", @"\u0270"); // Lowercase Turned M With Long Leg                  
+            _glyphs.Add("ɱ", @"\u0271"); // Lowercase M With Hook                             
+            _glyphs.Add("ɲ", @"\u0272"); // Lowercase N With Left Hook                        
+            _glyphs.Add("ɳ", @"\u0273"); // Lowercase N With Retroflex Hook                   
+            _glyphs.Add("ɴ", @"\u0274"); // Latin Letter Small Capital N                      
+            _glyphs.Add("ɵ", @"\u0275"); // Lowercase Barred O                                
+            _glyphs.Add("ɶ", @"\u0276"); // Latin Letter Small Capital Oe                     
+            _glyphs.Add("ɷ", @"\u0277"); // Lowercase Closed Omega                            
+            _glyphs.Add("ɸ", @"\u0278"); // Lowercase Phi                                     
+            _glyphs.Add("ɹ", @"\u0279"); // Lowercase Turned R                                
+            _glyphs.Add("ɺ", @"\u027A"); // Lowercase Turned R With Long Leg                  
+            _glyphs.Add("ɻ", @"\u027B"); // Lowercase Turned R With Hook                      
+            _glyphs.Add("ɼ", @"\u027C"); // Lowercase R With Long Leg                         
+            _glyphs.Add("ɽ", @"\u027D"); // Lowercase R With Tail                             
+            _glyphs.Add("ɾ", @"\u027E"); // Lowercase R With Fishhook                         
+            _glyphs.Add("ɿ", @"\u027F"); // Lowercase Reversed R With Fishhook                
+            _glyphs.Add("ʀ", @"\u0280"); // Latin Letter Small Capital R                      
+            _glyphs.Add("ʁ", @"\u0281"); // Latin Letter Small Capital Inverted R             
+            _glyphs.Add("ʂ", @"\u0282"); // Lowercase S With Hook                             
+            _glyphs.Add("ʃ", @"\u0283"); // Lowercase Esh                                     
+            _glyphs.Add("ʄ", @"\u0284"); // Lowercase Dotless J With Stroke and Hook          
+            _glyphs.Add("ʅ", @"\u0285"); // Lowercase Squat Reversed Esh                      
+            _glyphs.Add("ʆ", @"\u0286"); // Lowercase Esh With Curl                           
+            _glyphs.Add("ʇ", @"\u0287"); // Lowercase Turned T                                
+            _glyphs.Add("ʈ", @"\u0288"); // Lowercase T With Retroflex Hook                   
+            _glyphs.Add("ʉ", @"\u0289"); // Lowercase U Bar                                   
+            _glyphs.Add("ʊ", @"\u028A"); // Lowercase Upsilon                                 
+            _glyphs.Add("ʋ", @"\u028B"); // Lowercase v With Hook                             
+            _glyphs.Add("ʌ", @"\u028C"); // Lowercase Turned V                                
+            _glyphs.Add("ʍ", @"\u028D"); // Lowercase Turned W                                
+            _glyphs.Add("ʎ", @"\u028E"); // Lowercase Turned Y                                
+            _glyphs.Add("ʏ", @"\u028F"); // Latin Letter Small Capital Y                      
+            _glyphs.Add("ʐ", @"\u0290"); // Lowercase Z With Retroflex Hook                   
+            _glyphs.Add("ʑ", @"\u0291"); // Lowercase Z With Curl                             
+            _glyphs.Add("ʒ", @"\u0292"); // Lowercase Ezh                                     
+            _glyphs.Add("ʓ", @"\u0293"); // Lowercase Ezh With Curl                           
+            _glyphs.Add("ʔ", @"\u0294"); // Latin Letter Glottal Stop                         
+            _glyphs.Add("ʕ", @"\u0295"); // Latin Letter Pharyngeal Voiced Fricative          
+            _glyphs.Add("ʖ", @"\u0296"); // Latin Letter Inverted Glottal Stop                
+            _glyphs.Add("ʗ", @"\u0297"); // Latin Letter Stretched C                          
+            _glyphs.Add("ʘ", @"\u0298"); // Latin Letter Bilabial Click                       
+            _glyphs.Add("ʙ", @"\u0299"); // Latin Letter Small Capital B                      
+            _glyphs.Add("ʚ", @"\u029A"); // Lowercase Closed Open E                           
+            _glyphs.Add("ʛ", @"\u029B"); // Latin Letter Small Capital G With Hook            
+            _glyphs.Add("ʜ", @"\u029C"); // Latin Letter Small Capital H                      
+            _glyphs.Add("ʝ", @"\u029D"); // Lowercase J With Crossed-Tail                     
+            _glyphs.Add("ʞ", @"\u029E"); // Lowercase Turned K                                
+            _glyphs.Add("ʟ", @"\u029F"); // Latin Letter Small Capital L                      
+            _glyphs.Add("ʠ", @"\u02A0"); // Lowercase Q With Hook                             
+            _glyphs.Add("ʡ", @"\u02A1"); // Latin Letter Glottal Stop With Stroke             
+            _glyphs.Add("ʢ", @"\u02A2"); // Latin Letter Reversed Glottal Stop With Stroke    
+            _glyphs.Add("ʣ", @"\u02A3"); // Lowercase Dz Digraph                              
+            _glyphs.Add("ʤ", @"\u02A4"); // Lowercase Dezh Digraph                            
+            _glyphs.Add("ʥ", @"\u02A5"); // Lowercase Dz Digraph With Curl                    
+            _glyphs.Add("ʦ", @"\u02A6"); // Lowercase Ts Digraph                              
+            _glyphs.Add("ʧ", @"\u02A7"); // Lowercase Tesh Digraph                            
+            _glyphs.Add("ʨ", @"\u02A8"); // Lowercase Tc Digraph With Curl                    
+            _glyphs.Add("ʩ", @"\u02A9"); // Lowercase Feng Digraph                            
+            _glyphs.Add("ʪ", @"\u02AA"); // Lowercase Ls Digraph                              
+            _glyphs.Add("ʫ", @"\u02AB"); // Lowercase Lz Digraph                              
+            _glyphs.Add("ʬ", @"\u02AC"); // Lowercase Bilabial Percussive                     
+            _glyphs.Add("ʭ", @"\u02AD"); // Lowercase Bidental Percussive                     
+            _glyphs.Add("ʮ", @"\u02AE"); // Lowercase Turned H With Fishhook                  
+            _glyphs.Add("ʯ", @"\u02AF"); // Lowercase Turned H With Fishhook and Tail         
+            _glyphs.Add("à", @"\u0300"); // Grave accent
+            _glyphs.Add("á", @"\u0301"); // Acute accent
+            _glyphs.Add("ê", @"\u0302"); // Circumflex accent
+            _glyphs.Add("ã", @"\u0303"); // Tilde
+            _glyphs.Add("ā", @"\u0304"); // Macron
+            _glyphs.Add("ă", @"\u0306"); // Breve
+            _glyphs.Add("ż", @"\u0307"); // Dot
+            _glyphs.Add("ä", @"\u0308"); // Diaeresis(umlaut)
+            _glyphs.Add("ả", @"\u0309"); // Hook
+            _glyphs.Add("å", @"\u030A"); // Ring
+            _glyphs.Add("ő", @"\u030B"); // Double acute
+            _glyphs.Add("ž", @"\u030C"); // Caron(haček)
+            Debug.WriteLine($"[INFO] Glyph table contains {_glyphs.Count} keys.");
+            #endregion
         }
 
         /// <summary>
@@ -293,6 +798,9 @@ namespace ResxWriter
             this.Invalidate();
         }
 
+        /// <summary>
+        /// <see cref="Form"/> event.
+        /// </summary>
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
@@ -419,7 +927,7 @@ namespace ResxWriter
                 {
                     UpdateStatusBar("Check that you have imported some valid data.");
                     SwitchButtonImage(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
-                    ShowMsgBoxError("No valid delimited values to work with from the provided file.", "Validation Error");
+                    ShowMsgBoxError("No valid delimited values to work with from the provided file.", "Validation");
                     return;
                 }
 
@@ -436,29 +944,41 @@ namespace ResxWriter
                             foreach(var kvp in _userValues)
                             {
                                 // Add the content to the resx file.
-                                if (_useMeta)
-                                    resxWriter.AddMetadata(kvp.Key, kvp.Value);
-                                else
-                                    resxWriter.AddResource(kvp.Key, kvp.Value);
+                                if (!string.IsNullOrEmpty($"{kvp.Key}"))
+                                {
+                                    if (_useMeta)
+                                        resxWriter.AddMetadata(kvp.Key, kvp.Value);
+                                    else
+                                        resxWriter.AddResource(kvp.Key, kvp.Value);
+                                }
                             }
                         }
 
                         // Do we want the JS-style output for Angular pages?
                         if (_outputJS)
                         {
-                            var jsFile = $"{filePath}.js";
-                            if (File.Exists(jsFile)) { File.Delete(jsFile); }
-                            using (var fileStream = new StreamWriter(File.OpenWrite(jsFile), Encoding.GetEncoding(_codePage)))
+                            var jsFile = Path.Combine(Path.GetDirectoryName(filePath), $"{Path.GetFileNameWithoutExtension(tbFilePath.Text)}.js");
+                            using (var jsfs = new FileStream(jsFile, FileMode.Create))
                             {
-                                // Jump to the beginning of the file before writing.
-                                fileStream.BaseStream.Seek(0, SeekOrigin.Begin);
-
-                                fileStream.WriteLine("{");
-                                foreach (var kvp in _userValues)
+                                using (var fileStream = new StreamWriter(jsfs, Encoding.GetEncoding(_codePage)))
                                 {
-                                    fileStream.WriteLine($"   \"{kvp.Key}\": \"{kvp.Value}\",");
+                                    int idx = 0;
+                                    fileStream.BaseStream.Seek(0, SeekOrigin.Begin); // Jump to the beginning of the file before writing.
+                                    fileStream.WriteLine("{");
+                                    foreach (var kvp in _userValues)
+                                    {
+                                        idx++;
+                                        if (!string.IsNullOrEmpty($"{kvp.Key}"))
+                                        {
+                                            // If you want the HTML entity style encoding use System.Web.HttpUtility.HtmlEncode() instead of the Filter() method.
+                                            if (idx == _userValues.Count)
+                                                fileStream.WriteLine($"   \"{kvp.Key}\": \"{kvp.Value.Filter(_glyphs)}\"");
+                                            else
+                                                fileStream.WriteLine($"   \"{kvp.Key}\": \"{kvp.Value.Filter(_glyphs)}\",");
+                                        }
+                                    }
+                                    fileStream.WriteLine("}");
                                 }
-                                fileStream.WriteLine("}");
                             }
                         }
 
@@ -883,11 +1403,21 @@ namespace ResxWriter
                             line = line.Replace("\"", "");
                             string[] fields = line.Split(delimiter);
 
-                            // Ensure there are at least two fields
+                            // Ensure there are at least two fields.
                             if (fields.Length >= 2)
                             {
-                                // Add the first and second fields to the dictionary
-                                fieldDictionary[fields[0]] = fields[1];
+                                try
+                                {
+                                    // Avoid empty keys.
+                                    if (!string.IsNullOrEmpty(fields[0]))
+                                    {
+                                        fieldDictionary[fields[0]] = fields[1]; // Add the first and second fields to the dictionary
+                                    }
+                                }
+                                catch (Exception kex) // Typically a duplicate key error.
+                                {
+                                    UpdateStatusBar($"{kex.Message}");
+                                }
                             }
                         }
                     }

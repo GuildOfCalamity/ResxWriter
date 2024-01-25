@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -13,13 +14,13 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Windows.Forms;
 using System.Xml;
-using System.Reflection;
 
 namespace ResxWriter
 {
     /// <summary>
-    /// Some parts of this class were borrowed from AstroGrep v4.4.9.
+    /// Class of commonly used helper methods.
     /// </summary>
+    /// <remarks>A select few of these were borrowed from AstroGrep v4.4.9.</remarks>
     public static class Utils
     {
         #region [ListView Stuff]
@@ -98,6 +99,64 @@ namespace ResxWriter
         [DllImport("uxtheme.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
         public static extern int SetWindowTheme(IntPtr hwnd, string pszSubAppName, string pszSubIdList);
         #endregion
+
+        /// <summary>
+        /// Returns a completely decoded text string from the passed html.
+        /// </summary>
+        /// <remarks>This method is recursive.</remarks>
+        public static string HtmlDecode(this string html)
+        {
+            if (string.IsNullOrWhiteSpace(html))
+                return html;
+
+            return System.Web.HttpUtility.HtmlDecode(html);
+        }
+
+        /// <summary>
+        /// Returns a completely encoded html string from the passed text.
+        /// </summary>
+        /// <remarks>This method is recursive.</remarks>
+        public static string HtmlEncode(this string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            return System.Web.HttpUtility.HtmlEncode(text);
+        }
+
+        /// <summary>
+        /// Uses the supplied <see cref="Dictionary{TKey, TValue}"/> as a look-up table to replace matched values.
+        /// </summary>
+        public static string Filter(this string input, Dictionary<char, char> replacements)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            for (int i = 0; i < input.Length; i++)
+            {
+                if (replacements.ContainsKey(input[i]))
+                {
+                    input = input.Replace(input[i], replacements[input[i]]);
+                }
+            }
+            return input;
+        }
+
+        /// <summary>
+        /// Uses the supplied <see cref="Dictionary{TKey, TValue}"/> as a look-up table to replace matched values.
+        /// </summary>
+        public static string Filter(this string input, Dictionary<string, string> replacements)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            foreach (var replacement in replacements.Keys)
+            {
+                input = input.Replace(replacement, replacements[replacement]);
+            }
+            return input;
+        }
+
 
         /// <summary>
         /// Returns the <see cref="Encoding"/> based on the <paramref name="codePage"/> passed.
