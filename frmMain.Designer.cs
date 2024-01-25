@@ -90,7 +90,7 @@ namespace ResxWriter
             this.cbDelimiters.Font = new System.Drawing.Font("Consolas", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cbDelimiters.ForeColor = System.Drawing.Color.White;
             this.cbDelimiters.FormattingEnabled = true;
-            this.cbDelimiters.Location = new System.Drawing.Point(314, 55);
+            this.cbDelimiters.Location = new System.Drawing.Point(314, 54);
             this.cbDelimiters.Name = "cbDelimiters";
             this.cbDelimiters.Size = new System.Drawing.Size(60, 27);
             this.cbDelimiters.TabIndex = 3;
@@ -237,11 +237,11 @@ namespace ResxWriter
             this.tbCodePage.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.tbCodePage.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.tbCodePage.ForeColor = System.Drawing.Color.White;
-            this.tbCodePage.Location = new System.Drawing.Point(502, 54);
+            this.tbCodePage.Location = new System.Drawing.Point(496, 54);
             this.tbCodePage.Name = "tbCodePage";
-            this.tbCodePage.Size = new System.Drawing.Size(63, 27);
+            this.tbCodePage.Size = new System.Drawing.Size(115, 27);
             this.tbCodePage.TabIndex = 14;
-            this.tbCodePage.Text = "1252";
+            this.tbCodePage.Text = "windows-1252";
             this.tbCodePage.TextChanged += new System.EventHandler(this.tbCodePage_TextChanged);
             // 
             // lblCodePage
@@ -250,7 +250,7 @@ namespace ResxWriter
             this.lblCodePage.BackColor = System.Drawing.Color.Transparent;
             this.lblCodePage.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblCodePage.ForeColor = System.Drawing.Color.White;
-            this.lblCodePage.Location = new System.Drawing.Point(414, 57);
+            this.lblCodePage.Location = new System.Drawing.Point(408, 57);
             this.lblCodePage.Name = "lblCodePage";
             this.lblCodePage.Size = new System.Drawing.Size(82, 19);
             this.lblCodePage.TabIndex = 15;

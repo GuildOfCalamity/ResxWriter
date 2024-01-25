@@ -7,28 +7,23 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ResxWriter
 {
-    public enum MessageLevel
-    {
-        Info = 0,
-        Warning = 1, 
-        Success = 2,
-        Error = 3,
-    }
-
     /// <summary>
     /// A custom designer-less MessageBox replacement.
     /// </summary>
-    public partial class frmMessage : Form
+    public partial class frmQuestion : Form
     {
         #region [Props]
         bool autoTab = false;
         bool roundedForm = true;
-        string okText = "OK"; //"Acknowledge"
+        string yesText = "YES";
+        string noText = "NO";
         Label messageLabel;
-        Button okButton;
+        Button yesButton;
+        Button noButton;
         PictureBox pictureBox;
         FormBorderStyle borderStyle = FormBorderStyle.FixedToolWindow;
         Point iconLocus = new Point(16, 56);
@@ -43,7 +38,18 @@ namespace ResxWriter
         Color clrError = Color.FromArgb(45, 25, 25);
         Color clrBackground = Color.FromArgb(35, 35, 35);
         Color clrMouseOver = Color.FromArgb(55, 55, 55);
-        System.Windows.Forms.Timer tmrClose = null;
+        #endregion
+
+        #region [RFU]
+        /// <summary>
+        /// Occurs when the user inputs data.
+        /// </summary>
+        public event EventHandler DataReceived;
+
+        /// <summary>
+        /// Raises the <see cref="DataReceived"/> event.
+        /// </summary>
+        protected virtual void OnDataReceived() => DataReceived?.Invoke(this, new EventArgs());
         #endregion
 
         #region [Round Border]
@@ -65,36 +71,29 @@ namespace ResxWriter
         /// </summary>
         /// <param name="message">the text to display in the center of the dialog</param>
         /// <param name="title">the text to display on the title bar</param>
-        /// <param name="autoClose"><see cref="TimeSpan"/> to close the dialog, use <see cref="TimeSpan.Zero"/> or null for indefinite</param>
-        /// <param name="level"><see cref="MessageLevel"/></param>
-        /// <param name="addIcon">true to show the <see cref="MessageLevel"/> icon, false to hide the icon</param>
-        public static void Show(string message, string title, MessageLevel level = MessageLevel.Info, bool addIcon = false, TimeSpan? autoClose = null)
+        /// <param name="addIcon">true to show the question icon, false to hide the icon</param>
+        public static DialogResult Show(string message, string title, bool addIcon = false)
         {
-            using (var customMessageBox = new frmMessage(message, title, level, addIcon, autoClose))
+            DialogResult result = DialogResult.None;
+            using (var customMessageBox = new frmQuestion(message, title, addIcon))
             {
-                customMessageBox.ShowDialog();
+                result = customMessageBox.ShowDialog();
             }
+            return result;
         }
 
         /// <summary>
         /// Constructor
         /// </summary>
-        frmMessage(string message, string title, MessageLevel level, bool addIcon, TimeSpan? autoClose)
+        frmQuestion(string message, string title, bool addIcon)
         {
-            //Form f = Application.OpenForms.Where(x => x.GetType().Name == "ParentForm").FirstOrDefault();
-            var fcoll = Application.OpenForms.OfType<Form>();
-            foreach (var frm in fcoll)
-            {
-                // We'll only have one form open, the Main Form.
-            }
-
-            InitializeComponents(message, title, level, addIcon, autoClose);
+            InitializeComponents(message, title, addIcon);
         }
 
         /// <summary>
         /// Replaces the standard <see cref="InitializeComponent"/>.
         /// </summary>
-        void InitializeComponents(string message, string title, MessageLevel level, bool addIcon, TimeSpan? autoClose)
+        void InitializeComponents(string message, string title, bool addIcon)
         {
             #region [Form Background, Icon & Border]
             this.Text = title;
@@ -118,24 +117,7 @@ namespace ResxWriter
 
             if (addIcon)
             {
-                switch (level)
-                {
-                    case MessageLevel.Info:
-                            pictureBox = new PictureBox { Image = ResxWriter.Properties.Resources.MB_Info };
-                        break;
-                    case MessageLevel.Warning:
-                            pictureBox = new PictureBox { Image = ResxWriter.Properties.Resources.MB_Warning };
-                        break;
-                    case MessageLevel.Success:
-                            pictureBox = new PictureBox { Image = ResxWriter.Properties.Resources.MB_Success };
-                        break;
-                    case MessageLevel.Error:
-                            pictureBox = new PictureBox { Image = ResxWriter.Properties.Resources.MB_Error };
-                        break;
-                    default: // Default will be the info style.
-                            pictureBox = new PictureBox { Image = ResxWriter.Properties.Resources.MB_Info };
-                        break;
-                }
+                pictureBox = new PictureBox { Image = ResxWriter.Properties.Resources.MB_Question };
                 pictureBox.SizeMode = PictureBoxSizeMode.StretchImage;
                 pictureBox.Size = iconSize;
                 pictureBox.Location = iconLocus;
@@ -169,58 +151,66 @@ namespace ResxWriter
             this.Controls.Add(messageLabel);
             #endregion
 
-            #region [Form Button]
-            okButton = new Button();
-            okButton.TabIndex = 0;
-            okButton.TabStop = true;
-            okButton.Text = okText;
-            okButton.TextAlign = ContentAlignment.MiddleCenter;
-            okButton.Font = new Font("Calibri", 14);
-            okButton.ForeColor = clrForeText;
-            okButton.MinimumSize = new Size(300, 33);
-            okButton.FlatStyle = FlatStyle.Flat;
-            okButton.FlatAppearance.BorderSize = 0;
-            switch (level)
+            #region [Form Yes Button]
+            yesButton = new Button();
+            yesButton.TabIndex = 0;
+            yesButton.TabStop = true;
+            yesButton.Text = yesText;
+            yesButton.TextAlign = ContentAlignment.MiddleCenter;
+            yesButton.Font = new Font("Calibri", 14);
+            yesButton.ForeColor = clrForeText;
+            yesButton.MinimumSize = new Size(mainFormSize.Width / 2, 33);
+            yesButton.FlatStyle = FlatStyle.Flat;
+            yesButton.FlatAppearance.BorderSize = 0;
+            yesButton.BackColor = clrSuccess;
+            yesButton.FlatAppearance.MouseOverBackColor = clrMouseOver;
+            yesButton.Dock = DockStyle.Left;
+            yesButton.DialogResult = DialogResult.Yes;
+            yesButton.Click += (sender, e) => 
             {
-                case MessageLevel.Info:
-                    okButton.BackColor = clrInfo;
-                    okButton.FlatAppearance.MouseOverBackColor = clrMouseOver; //ColorBlend(Color.Gray, clrInfo);
-                    break;
-                case MessageLevel.Warning:
-                    okButton.BackColor = clrWarning;
-                    okButton.FlatAppearance.MouseOverBackColor = clrMouseOver; //ColorBlend(Color.Gray, clrWarning);
-                    break;
-                case MessageLevel.Success:
-                    okButton.BackColor = clrSuccess;
-                    okButton.FlatAppearance.MouseOverBackColor = clrMouseOver; //ColorBlend(Color.Gray, clrSuccess);
-                    break;
-                case MessageLevel.Error:
-                    okButton.BackColor = clrError;
-                    okButton.FlatAppearance.MouseOverBackColor = clrMouseOver; //ColorBlend(Color.Gray, clrError);
-                    break;
-                default:
-                    okButton.BackColor = clrBackground;
-                    okButton.FlatAppearance.MouseOverBackColor = clrMouseOver;
-                    break;
-            }
-            okButton.Dock = DockStyle.Bottom;
-            okButton.Click += (sender, e) => 
-            {
-                if (tmrClose != null)
-                {
-                    tmrClose.Stop();
-                    tmrClose.Dispose();
-                }
+                this.DialogResult = DialogResult.Yes; // Unnecessary, but let's do it anyways.
                 this.Close();
             };
+            #endregion
+
+            #region [Form No Button]
+            noButton = new Button();
+            noButton.TabIndex = 0;
+            noButton.TabStop = true;
+            noButton.Text = noText;
+            noButton.TextAlign = ContentAlignment.MiddleCenter;
+            noButton.Font = new Font("Calibri", 14);
+            noButton.ForeColor = clrForeText;
+            noButton.MinimumSize = new Size(mainFormSize.Width / 2, 33);
+            noButton.FlatStyle = FlatStyle.Flat;
+            noButton.FlatAppearance.BorderSize = 0;
+            noButton.BackColor = clrError;
+            noButton.FlatAppearance.MouseOverBackColor = clrMouseOver;
+            noButton.Dock = DockStyle.Right;
+            noButton.DialogResult = DialogResult.No;
+            noButton.Click += (sender, e) =>
+            {
+                this.DialogResult = DialogResult.No; // Unnecessary, but let's do it anyways.
+                this.Close();
+            };
+            #endregion
+
+            #region [Button Container]
+            var panel = new Panel();
+            panel.Size = new Size(mainFormSize.Width, mainFormSize.Height / 5);
+            panel.Dock = DockStyle.Bottom;
+            panel.Controls.Add(yesButton);
+            panel.Controls.Add(noButton);
+            #endregion
+
+            this.Controls.Add(panel);
+
             this.Shown += (sender, e) => 
             {
-                this.ActiveControl = okButton;
+                this.ActiveControl = yesButton;
                 if (autoTab)
                     SendKeys.SendWait("{TAB}");
             };
-            this.Controls.Add(okButton);
-            #endregion
 
             if (roundedForm)
             {   // Support dragging the dialog, since the message label will
@@ -233,31 +223,6 @@ namespace ResxWriter
                         SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
                     }
                 };
-            }
-
-            // Do we have a TimeSpan to observe?
-            if (autoClose != null && autoClose != TimeSpan.Zero && tmrClose == null)
-            {
-                tmrClose = new System.Windows.Forms.Timer();
-                var overflow = (int)autoClose.Value.TotalMilliseconds;
-                if (overflow == int.MinValue)
-                    overflow = int.MaxValue;
-                tmrClose.Interval = overflow;
-                tmrClose.Tick += TimerOnTick;
-                tmrClose.Start();
-            }
-        }
-
-        /// <summary>
-        /// Auto-close timer event.
-        /// </summary>
-        void TimerOnTick(object sender, EventArgs e)
-        {
-            if (tmrClose != null)
-            { 
-                tmrClose.Stop();
-                tmrClose.Dispose();
-                this.Close();
             }
         }
     }

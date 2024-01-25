@@ -11,8 +11,6 @@ using System.Resources;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
-using System.Web.Routing;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -53,7 +51,7 @@ namespace ResxWriter
         static RegistryMonitor _regMon = null;
         static Process _logProcess = null;
         static Process _settingsProcess = null;
-        int _codePage = 1252;
+        string _codePage = "windows-1252";
         Dictionary<string, string> _glyphs = new Dictionary<string, string>();
         #endregion
 
@@ -439,7 +437,15 @@ namespace ResxWriter
             _glyphs.Add("Ž", @"\u017D"); // Uppercase Z With Caron                                
             _glyphs.Add("ž", @"\u017E"); // Lowercase Z With Caron
             _glyphs.Add("ſ", @"\u017F"); // Lowercase Long S                              
-            _glyphs.Add("ƀ", @"\u0180"); // Lowercase B With Stroke                       
+            _glyphs.Add("ƀ", @"\u0180"); // Lowercase B With Stroke
+	        _glyphs.Add("Ɓ", @"\u0181"); // Uppercase B With Hook
+	        _glyphs.Add("Ƃ", @"\u0182"); // Uppercase B With Topbar
+	        _glyphs.Add("ƃ", @"\u0183"); // Lowercase B With Topbar
+	        _glyphs.Add("Ƅ", @"\u0184"); // Uppercase Tone Six
+	        _glyphs.Add("ƅ", @"\u0185"); // Lowercase Tone Six
+	        _glyphs.Add("Ɔ", @"\u0186"); // Uppercase Open O
+	        _glyphs.Add("Ƈ", @"\u0187"); // Uppercase C With Hook
+	        _glyphs.Add("ƈ", @"\u0188"); // Lowercase C With Hook
             _glyphs.Add("Ɖ", @"\u0189"); // Uppercase African D                           
             _glyphs.Add("Ɗ", @"\u018A"); // Uppercase D With Hook                         
             _glyphs.Add("Ƌ", @"\u018B"); // Uppercase D With Topbar                       
@@ -748,6 +754,7 @@ namespace ResxWriter
             _glyphs.Add("ő", @"\u030B"); // Double acute
             _glyphs.Add("ž", @"\u030C"); // Caron(haček)
             Debug.WriteLine($"[INFO] Glyph table contains {_glyphs.Count} keys.");
+            //TestAllEncodings();
             #endregion
         }
 
@@ -920,12 +927,13 @@ namespace ResxWriter
                 saveFileDialog.Title = "Select an output file name...";
                 saveFileDialog.Filter = "Resx files (*.resx)|*.resx";
                 saveFileDialog.FilterIndex = 1;
+                saveFileDialog.OverwritePrompt = false;
                 saveFileDialog.RestoreDirectory = true;
                 saveFileDialog.FileName = $"{Path.GetFileNameWithoutExtension(tbFilePath.Text)}.resx";
 
                 if (_userValues.Count == 0)
                 {
-                    UpdateStatusBar("Check that you have imported some valid data.");
+                    UpdateStatusBar("Check that you have imported some valid data. Your delimiter may be incorrect.");
                     SwitchButtonImage(btnGenerateResx, ResxWriter.Properties.Resources.Button02);
                     ShowMsgBoxError("No valid delimited values to work with from the provided file.", "Validation");
                     return;
@@ -937,6 +945,16 @@ namespace ResxWriter
                     {
                         // Get the selected file name.
                         string filePath = saveFileDialog.FileName;
+
+                        if (File.Exists(filePath))
+                        {
+                            var dr = frmQuestion.Show($"Do you want to replace the existing file?", $"Question", true);
+                            if (dr == DialogResult.No)
+                            {
+                                UpdateStatusBar("User opted to not replace the existing file.");
+                                return;
+                            }
+                        }
 
                         // Create a ResXResourceWriter.
                         using (ResXResourceWriter resxWriter = new ResXResourceWriter(filePath))
@@ -963,7 +981,8 @@ namespace ResxWriter
                                 using (var fileStream = new StreamWriter(jsfs, Encoding.GetEncoding(_codePage)))
                                 {
                                     int idx = 0;
-                                    fileStream.BaseStream.Seek(0, SeekOrigin.Begin); // Jump to the beginning of the file before writing.
+                                    fileStream.BaseStream.Seek(0, SeekOrigin.Begin); // Depending on the FileStream options we should be at the beginning of the stream, but we can ensure this.
+                                    #region [JS-style]
                                     fileStream.WriteLine("{");
                                     foreach (var kvp in _userValues)
                                     {
@@ -978,8 +997,10 @@ namespace ResxWriter
                                         }
                                     }
                                     fileStream.WriteLine("}");
+                                    #endregion
                                 }
                             }
+                            Logger.Instance.Write($"JS file generated successfully: \"{jsFile}\" ({_userValues.Count} items).", LogLevel.Success);
                         }
 
                         UpdateStatusBar("Resx file generated successfully.");
@@ -1001,7 +1022,7 @@ namespace ResxWriter
                 }
                 else
                 {
-                    UpdateStatusBar("Export was canceled.");
+                    UpdateStatusBar("User opted to cancel the export.");
                 }
             }
         }
@@ -1063,10 +1084,7 @@ namespace ResxWriter
         /// <summary>
         /// <see cref="Button"/> event.
         /// </summary>
-        void btnExit_Click(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
+        void btnExit_Click(object sender, EventArgs e) => Application.Exit();
 
         /// <summary>
         /// <see cref="Form"/> event.
@@ -1114,23 +1132,43 @@ namespace ResxWriter
         /// </summary>
         void lvContents_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Right-click shouldn't change the selection.
-            if (Control.MouseButtons == System.Windows.Forms.MouseButtons.Right)
-                return;
-
             var lv = sender as ListView;
+
+            if (lv.SelectedItems.Count == 0)
+                return;
 
             try
             {
-                if (lv.SelectedItems.Count == 0)
-                    return;
-
+                var key = lv.SelectedItems[0].SubItems[0].Text;
                 var data = lv.SelectedItems[0].SubItems[1].Text;
                 Debug.WriteLine($"SelectedItem => {data}");
+
+                if (Control.MouseButtons == System.Windows.Forms.MouseButtons.Right)
+                {
+                    var item = new MenuItem()
+                    {
+                        Text = $"{key}"
+                    };
+                    item.Click += (sio, sie) =>
+                    {
+                        UpdateStatusBar($">> MenuItem Selected <<");
+                    };
+                    var menu = new ContextMenu(new MenuItem[] { item });
+
+                    // https://stackoverflow.com/questions/8199019/how-do-i-correctly-position-a-context-menu-when-i-right-click-a-datagridviews-c
+                    //var pt1 = System.Windows.Forms.Cursor.Position;
+                    //var pt2 = lv.PointToScreen(Control.MousePosition);
+                    var pt3 = lv.PointToClient(Cursor.Position);
+
+                    menu.Show(lv, pt3);
+
+                    //return;
+                }
+
             }
-            catch (Exception ex ) 
-            { 
-                Debug.WriteLine($"[ERROR] {ex.Message}"); 
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ERROR] {ex.Message}");
             }
         }
 
@@ -1170,15 +1208,16 @@ namespace ResxWriter
         void tbCodePage_TextChanged(object sender, EventArgs e)
         {
             var tb = sender as TextBox;
-            if (int.TryParse(tb.Text, out int cp))
+
+            try
             {
-                _codePage = SettingsManager.CodePage = cp;
-                UpdateStatusBar("Converted value to code page.");
+                var enc = Encoding.GetEncoding(tb.Text.Trim());
+                _codePage = SettingsManager.CodePage = tb.Text.Trim();
+                UpdateStatusBar($"Code page is now set to \"{_codePage}\".");
             }
-            else
+            catch (Exception)
             {
-                UpdateStatusBar("Unable to convert value to code page, defaulting to CP1252.");
-                _codePage = 1252;
+                UpdateStatusBar($"Invalid code page \"{tb.Text}\". \"{_codePage}\" will be used.");
             }
         }
 
@@ -1267,6 +1306,7 @@ namespace ResxWriter
                 {
                     while (!_logProcess.HasExited && !_closing) { Thread.Sleep(500); }
                     UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOff);
+                    _logProcess.Dispose();
                     _logProcess = null;
                 });
             }
@@ -1301,6 +1341,7 @@ namespace ResxWriter
                 {
                     while (!_settingsProcess.HasExited && !_closing) { Thread.Sleep(500); }
                     UpdateMenuItemImage(tsmi, ResxWriter.Properties.Resources.SB_DotOff);
+                    _settingsProcess.Dispose();
                     _settingsProcess = null;
                 });
             }
@@ -1830,16 +1871,21 @@ namespace ResxWriter
         /// Print out the data using all available code pages.
         /// The user can deside which looks correct.
         /// </summary>
+        /// <remarks>
+        /// "ISO-8859-1" and "Windows-1252" are the most popular character sets.
+        /// https://en.wikipedia.org/wiki/ISO/IEC_8859-1
+        /// </remarks>
         void TestAllEncodings()
         {
             var strFR = "Il s'agit d'un échantillon de période de dépassement à convertir à l'aide de la bibliothèque d'encodages.";
             var encs = Encoding.GetEncodings();
             foreach (var enc in encs)
             {
-                Debug.WriteLine($"{enc.Name} [{enc.CodePage}]");
+                Debug.WriteLine(new string('=',120));
+                Debug.WriteLine($"[INFO] {enc.Name} (CP{enc.CodePage})");
                 Encoding test = Encoding.GetEncoding(enc.CodePage);
                 var samp = test.GetBytes(strFR);
-                Debug.WriteLine($"{test.GetString(samp)}");
+                Debug.WriteLine($"[INFO] {test.GetString(samp)}");
             }
         }
     }

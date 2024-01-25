@@ -75,6 +75,12 @@
     <Compile Include="frmMessage.Designer.cs">
       <DependentUpon>frmMessage.cs</DependentUpon>
     </Compile>
+    <Compile Include="frmQuestion.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmQuestion.Designer.cs">
+      <DependentUpon>frmQuestion.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Support\ListViewTransparent.cs">
       <SubType>Component</SubType>
@@ -90,6 +96,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="frmMessage.resx">
       <DependentUpon>frmMessage.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmQuestion.resx">
+      <DependentUpon>frmQuestion.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Support\ImageComboBox.resx">
       <DependentUpon>ImageComboBox.cs</DependentUpon>
@@ -128,6 +137,7 @@
     <Content Include="Assets\CB_Delimiter.png" />
     <Content Include="Assets\MB_Error.png" />
     <Content Include="Assets\MB_Info.png" />
+    <Content Include="Assets\MB_Question.png" />
     <Content Include="Assets\MB_Success.png" />
     <Content Include="Assets\MB_Warning.png" />
     <Content Include="Assets\SB_Background.png" />

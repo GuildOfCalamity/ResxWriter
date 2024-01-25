@@ -27,7 +27,7 @@ namespace ResxWriter
         int windowLeft = -1;
         int windowState = -1;
         int windowsDPI = 100;
-        int codePage = 1252;
+        string codePage = "windows-1252";
         #endregion
 
         #region [Public Properties]
@@ -107,7 +107,7 @@ namespace ResxWriter
             set => AppSettings.windowsDPI = value;
         }
 
-        public static int CodePage
+        public static string CodePage
         {
             get => AppSettings.codePage;
             set => AppSettings.codePage = value;

@@ -103,7 +103,6 @@ namespace ResxWriter
         /// <summary>
         /// Returns a completely decoded text string from the passed html.
         /// </summary>
-        /// <remarks>This method is recursive.</remarks>
         public static string HtmlDecode(this string html)
         {
             if (string.IsNullOrWhiteSpace(html))
@@ -115,7 +114,6 @@ namespace ResxWriter
         /// <summary>
         /// Returns a completely encoded html string from the passed text.
         /// </summary>
-        /// <remarks>This method is recursive.</remarks>
         public static string HtmlEncode(this string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -301,6 +299,25 @@ namespace ResxWriter
                 current = current.GetTypeInfo().BaseType;
             }
         }
+
+        /// <summary>
+        /// Blends the provided two colors together.
+        /// </summary>
+        /// <param name="foreColor">Color to blend onto the background color.</param>
+        /// <param name="backColor">Color to blend the other color onto.</param>
+        /// <param name="amount">How much of <paramref name="foreColor"/> to keep, on top of <paramref name="backColor"/>.</param>
+        /// <returns>The blended color.</returns>
+        /// <remarks>The alpha channel is not altered.</remarks>
+        public static Color ColorBlend(Color foreColor, Color backColor, double amount = 0.3)
+        {
+            byte r = (byte)(foreColor.R * amount + backColor.R * (1 - amount));
+            byte g = (byte)(foreColor.G * amount + backColor.G * (1 - amount));
+            byte b = (byte)(foreColor.B * amount + backColor.B * (1 - amount));
+            return Color.FromArgb(r, g, b);
+        }
+        public static Color DarkenColor(Color baseColor, float percentage = 0.3F) => ControlPaint.Dark(baseColor, percentage);
+        public static Color LightenColor(Color baseColor, float percentage = 0.3F) => ControlPaint.Light(baseColor, percentage);
+
 
         /// <summary>
         /// Applies a color scheme to the control and its children.
