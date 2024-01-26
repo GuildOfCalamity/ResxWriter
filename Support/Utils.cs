@@ -100,6 +100,13 @@ namespace ResxWriter
         public static extern int SetWindowTheme(IntPtr hwnd, string pszSubAppName, string pszSubIdList);
         #endregion
 
+        public static bool ControlPropertyExists(this Control ctrl, string propName)
+        {
+            BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static;
+            PropertyInfo prop = ctrl.GetType().GetProperty(propName, flags);
+            return (bool)prop.GetValue(ctrl, null);
+        }
+
         /// <summary>
         /// Returns a completely decoded text string from the passed html.
         /// </summary>

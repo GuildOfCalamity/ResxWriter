@@ -153,6 +153,16 @@ namespace ResxWriter.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap MB_Question {
+            get {
+                object obj = ResourceManager.GetObject("MB_Question", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap MB_Success {
             get {
                 object obj = ResourceManager.GetObject("MB_Success", resourceCulture);

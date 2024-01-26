@@ -145,6 +145,9 @@
   <data name="MB_Info" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Assets\MB_Info.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="MB_Question" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Assets\MB_Question.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="MB_Success" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Assets\MB_Success.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>

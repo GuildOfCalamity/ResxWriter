@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -22,9 +23,15 @@ namespace ResxWriter
     public partial class frmMain : Form
     {
         #region [Props]
+        bool _useMeta = false;
+        bool _outputJS = false;
+        bool _closing = false;
+        bool _showWarning = false;
+        string _userDelimiter = string.Empty;
+        string _passedArg = string.Empty;
+        string _genericError = "An error was detected.";
         readonly List<string> _commonDelimiters = new List<string> { ",", ";", "~", "|", "TAB" };
-        // Used for testing the ImageComboBox control.
-        readonly Dictionary<string,string> _delimiters = new Dictionary<string,string> 
+        readonly Dictionary<string,string> _delimiters = new Dictionary<string,string> // Used for testing the ImageComboBox control.
         { 
             { "Comma ,", "," }, 
             { "Semicolon ;", ";" }, 
@@ -33,16 +40,10 @@ namespace ResxWriter
             { "Tab \\t", "\t" } 
         };
         Dictionary<string, string> _userValues = new Dictionary<string, string>();
-        string _userDelimiter = string.Empty;
-        string _passedArg = string.Empty;
-        string _genericError = "An error was detected.";
-        bool _useMeta = false;
-        bool _outputJS = false;
-        bool _closing = false;
-        bool _showWarning = false;
         Color _clrWarning = Color.FromArgb(240, 180, 0);
         System.Drawing.Font _warningFont = new System.Drawing.Font("Calibri", 16);
         System.Drawing.Font _standardFont = new System.Drawing.Font("Calibri", 13);
+        System.Drawing.Font _menuFont = new System.Drawing.Font("Calibri", 11);
         System.Drawing.Pen _pen = new System.Drawing.Pen(System.Drawing.Color.Red, 2.0F);
         System.Windows.Forms.ErrorProvider _pathErrorProvider;
         DateTime _lastChange = DateTime.MinValue;
@@ -53,6 +54,17 @@ namespace ResxWriter
         static Process _settingsProcess = null;
         string _codePage = "windows-1252";
         Dictionary<string, string> _glyphs = new Dictionary<string, string>();
+        public bool IsRunningIDE
+        {
+            get
+            {
+                return System.Diagnostics.Debugger.IsAttached;
+                //var pmc = System.Diagnostics.Process.GetCurrentProcess().Modules;
+                //IEnumerable<System.Diagnostics.ProcessModule> pmQuery = pmc.OfType<System.Diagnostics.ProcessModule>().Where(pt => pt.ModuleName == "apphelp.dll");
+                //if (pmQuery.Any()) { return true; }
+                //else { return false; }
+            }
+        }
         #endregion
 
         #region [Animation]
@@ -205,12 +217,18 @@ namespace ResxWriter
 
             //UpdateStatusBar("[INFO] Some super long text to test margins and justification settings in the application so we can see where any issues might be with regards to visuals.");
 
+            Logger.Instance.Write($"Usage mode is \"{System.ComponentModel.LicenseManager.UsageMode}\"", LogLevel.Debug);
+
             #region [Log Application Dependencies]
-            //var procDeps = Utils.GetProcessDependencies();
             var refAssems = Utils.GetReferencedAssemblies();
             Logger.Instance.Write($"Runtime assembly list:", LogLevel.Debug);
             foreach (KeyValuePair<string, Version> assem in refAssems)
                 Logger.Instance.Write($"{assem.Key} v{assem.Value}", LogLevel.Debug);
+
+            //var procDeps = Utils.GetProcessDependencies();
+            //Logger.Instance.Write($"Process assembly list:", LogLevel.Debug);
+            //foreach (string pd in procDeps)
+            //    Logger.Instance.Write($"{pd}", LogLevel.Debug);
             #endregion
 
             #region [Registry Monitoring]
@@ -754,7 +772,6 @@ namespace ResxWriter
             _glyphs.Add("ő", @"\u030B"); // Double acute
             _glyphs.Add("ž", @"\u030C"); // Caron(haček)
             Debug.WriteLine($"[INFO] Glyph table contains {_glyphs.Count} keys.");
-            //TestAllEncodings();
             #endregion
         }
 
@@ -1142,34 +1159,64 @@ namespace ResxWriter
                 var key = lv.SelectedItems[0].SubItems[0].Text;
                 var data = lv.SelectedItems[0].SubItems[1].Text;
                 Debug.WriteLine($"SelectedItem => {data}");
-
-                if (Control.MouseButtons == System.Windows.Forms.MouseButtons.Right)
+                if (IsRunningIDE)
                 {
-                    var item = new MenuItem()
+                    if (Control.MouseButtons == System.Windows.Forms.MouseButtons.Right)
                     {
-                        Text = $"{key}"
-                    };
-                    item.Click += (sio, sie) =>
-                    {
-                        UpdateStatusBar($">> MenuItem Selected <<");
-                    };
-                    var menu = new ContextMenu(new MenuItem[] { item });
+                        #region [Override the default style of the MenuItem]
+                        //var item = new MenuItem() { Text = $"Test \"{key}\" against all encodings" };
+                        //item.Click += (sio, sie) =>
+                        //{
+                        //    TestAllEncodings(data);
+                        //    UpdateStatusBar("See debug output window for results.");
+                        //};
+                        //var menu = new ContextMenu(new MenuItem[] { item });
+                        //IEnumerable<MenuItem> mQuery = menu.MenuItems.OfType<MenuItem>().Where(pt => pt.BarBreak != true);
+                        //foreach (var mi in mQuery)
+                        //{
+                        //    mi.OwnerDraw = true;
+                        //    mi.DrawItem += menu_DrawItem;
+                        //    mi.MeasureItem += menu_MeasureItem;
+                        //}
+                        //var pt2 = lv.PointToClient(System.Windows.Forms.Cursor.Position); //var pt1 = lv.PointToClient(System.Windows.Forms.Control.MousePosition);
+                        //menu.Show(lv, pt2);
+                        #endregion
 
-                    // https://stackoverflow.com/questions/8199019/how-do-i-correctly-position-a-context-menu-when-i-right-click-a-datagridviews-c
-                    //var pt1 = System.Windows.Forms.Cursor.Position;
-                    //var pt2 = lv.PointToScreen(Control.MousePosition);
-                    var pt3 = lv.PointToClient(Cursor.Position);
-
-                    menu.Show(lv, pt3);
-
-                    //return;
+                        var dr = frmQuestion.Show($"Run all encodings on \"{key}\"", "Debug", true);
+                        if (dr == DialogResult.Yes)
+                        {
+                            TestAllEncodings(data);
+                            UpdateStatusBar("See debug output window for results.");
+                        }
+                    }
                 }
-
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[ERROR] {ex.Message}");
+                ShowMsgBoxError($"{ex.Message}", "Error");
             }
+        }
+
+        void menu_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            MenuItem mi = sender as MenuItem;
+            string color = SystemColors.Window.ToString();
+            if (e.Index > -1) { color = mi.Text; }
+
+            e.DrawBackground();
+            //var sb = new SolidBrush(ColorTranslator.FromHtml(color));
+            e.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(30,30,30)), e.Bounds);
+            e.Graphics.DrawString(color, _menuFont, new SolidBrush(Color.White), e.Bounds);
+        }
+
+        void menu_MeasureItem(object sender, MeasureItemEventArgs e)
+        {
+            MenuItem m = (MenuItem)sender;
+            //Font font = new Font(Font.FontFamily, Font.Size, Font.Style);
+            SizeF sze = e.Graphics.MeasureString($"{m.Text}.", _menuFont);
+            e.ItemHeight = (int)sze.Height;
+            e.ItemWidth = (int)sze.Width;
         }
 
         /// <summary>
@@ -1865,7 +1912,6 @@ namespace ResxWriter
                 Logger.Instance.Write($"An error occurred trying to call the privilege escaltion to set the right click search option: {ex.Message}", LogLevel.Error);
             }
         }
-        #endregion
 
         /// <summary>
         /// Print out the data using all available code pages.
@@ -1875,17 +1921,151 @@ namespace ResxWriter
         /// "ISO-8859-1" and "Windows-1252" are the most popular character sets.
         /// https://en.wikipedia.org/wiki/ISO/IEC_8859-1
         /// </remarks>
-        void TestAllEncodings()
+        void TestAllEncodings(string input)
         {
-            var strFR = "Il s'agit d'un échantillon de période de dépassement à convertir à l'aide de la bibliothèque d'encodages.";
+            //input = "Il s'agit d'un échantillon de période de dépassement à convertir à l'aide de la bibliothèque d'encodages.";
             var encs = Encoding.GetEncodings();
             foreach (var enc in encs)
             {
                 Debug.WriteLine(new string('=',120));
                 Debug.WriteLine($"[INFO] {enc.Name} (CP{enc.CodePage})");
                 Encoding test = Encoding.GetEncoding(enc.CodePage);
-                var samp = test.GetBytes(strFR);
+                var samp = test.GetBytes(input);
                 Debug.WriteLine($"[INFO] {test.GetString(samp)}");
+            }
+        }
+        #endregion
+    }
+
+
+    /// <summary>
+    /// Inside frmMain...
+    /// var ms1 = new MenuStrip();
+    /// ms1.Renderer = new AltRenderer();
+    /// this.Controls.Add(ms1);
+    /// https://stackoverflow.com/questions/36767478/color-change-for-menuitem
+    /// </summary>
+    public class AltRenderer : ToolStripProfessionalRenderer
+    {
+        protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+        {
+            Rectangle rc = new Rectangle(Point.Empty, e.Item.Size);
+            Color c = e.Item.Selected ? Color.LightBlue : Color.MediumBlue;
+            using (SolidBrush brush = new SolidBrush(c))
+                e.Graphics.FillRectangle(brush, rc);
+        }
+    }
+
+    /// <summary>
+    /// Inside frmMain...
+    /// var ms1 = new MenuStrip();
+    /// ms1.Renderer = new ToolStripProfessionalRenderer(new ModifiedColorTable());
+    /// this.Controls.Add(ms1);
+    /// https://stackoverflow.com/questions/36767478/color-change-for-menuitem
+    /// </summary>
+    public class ModifiedColorTable : ProfessionalColorTable
+    {
+        public override Color ToolStripDropDownBackground
+        {
+            get
+            {
+                return Color.Blue;
+            }
+        }
+
+        public override Color ImageMarginGradientBegin
+        {
+            get
+            {
+                return Color.Blue;
+            }
+        }
+
+        public override Color ImageMarginGradientMiddle
+        {
+            get
+            {
+                return Color.Blue;
+            }
+        }
+
+        public override Color ImageMarginGradientEnd
+        {
+            get
+            {
+                return Color.Blue;
+            }
+        }
+
+        public override Color MenuBorder
+        {
+            get
+            {
+                return Color.Black;
+            }
+        }
+
+        public override Color MenuItemBorder
+        {
+            get
+            {
+                return Color.Black;
+            }
+        }
+
+        public override Color MenuItemSelected
+        {
+            get
+            {
+                return Color.Navy;
+            }
+        }
+
+        public override Color MenuStripGradientBegin
+        {
+            get
+            {
+                return Color.Blue;
+            }
+        }
+
+        public override Color MenuStripGradientEnd
+        {
+            get
+            {
+                return Color.Blue;
+            }
+        }
+
+        public override Color MenuItemSelectedGradientBegin
+        {
+            get
+            {
+                return Color.Navy;
+            }
+        }
+
+        public override Color MenuItemSelectedGradientEnd
+        {
+            get
+            {
+                return Color.Navy;
+            }
+        }
+
+        public override Color MenuItemPressedGradientBegin
+        {
+            get
+            {
+                return Color.Blue;
+            }
+        }
+
+        public override Color MenuItemPressedGradientEnd
+        {
+            get
+            {
+                return Color.Blue;
             }
         }
     }
