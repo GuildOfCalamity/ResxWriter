@@ -16,7 +16,7 @@ namespace ResxWriter
         [STAThread]
         static void Main()
         {
-            // Access command line arguments
+            // Access command line arguments, if any.
             string[] args = Environment.GetCommandLineArgs();
             foreach (var a in args) { Debug.WriteLine($"Detected argument: {a}"); }
 
@@ -31,7 +31,7 @@ namespace ResxWriter
             else
                 Application.Run(new frmMain());
         }
-        static void UnhandledException(object sender, UnhandledExceptionEventArgs e) => Logger.Instance.Write($"{(Exception)e.ExceptionObject}  IsTerminating:{e.IsTerminating}", LogLevel.Error);
+        static void UnhandledException(object sender, UnhandledExceptionEventArgs e) => Logger.Instance.Write($"{(Exception)e.ExceptionObject}{Environment.NewLine}IsTerminating:{e.IsTerminating}", LogLevel.Error);
         static void Application_ThreadException(object sender, ThreadExceptionEventArgs e) => Logger.Instance.Write($"ThreadException:{e.Exception?.Message}", LogLevel.Error);
     }
 }

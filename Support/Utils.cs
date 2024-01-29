@@ -100,11 +100,46 @@ namespace ResxWriter
         public static extern int SetWindowTheme(IntPtr hwnd, string pszSubAppName, string pszSubIdList);
         #endregion
 
-        public static bool ControlPropertyExists(this Control ctrl, string propName)
+        /// <summary>
+        /// Checks the <paramref name="ctrl"/> to determine if a specific property is available.
+        /// </summary>
+        /// <param name="ctrl"></param>
+        /// <param name="propName">e.g. "Enabled"</param>
+        /// <example>
+        /// <code>
+        ///    bool dpi = btnLoad.PropertyExists("DeviceDpi");
+        /// </code>
+        /// </example>
+        /// <returns>true if property exists, false otherwise</returns>
+        public static bool PropertyExists(this Control ctrl, string propName)
         {
-            BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static;
+            BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy;
             PropertyInfo prop = ctrl.GetType().GetProperty(propName, flags);
-            return (bool)prop.GetValue(ctrl, null);
+            if (prop == null)
+                return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Retruns the <paramref name="ctrl"/> property value, if available.
+        /// </summary>
+        /// <param name="ctrl"></param>
+        /// <param name="propName">e.g. "Enabled"</param>
+        /// <example>
+        /// <code>
+        ///    int dpi = btnLoad.PropertyValue<int>("DeviceDpi");
+        /// </code>
+        /// </example>
+        /// <returns><typeparamref name="T"/> value if found, default <typeparamref name="T"/> otherwise</returns>
+        public static T PropertyValue<T>(this Control ctrl, string propName)
+        {
+            BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy;
+            PropertyInfo prop = ctrl.GetType().GetProperty(propName, flags);
+            if (prop == null)
+                return default(T);
+
+            return (T)prop.GetValue(ctrl, null);
         }
 
         /// <summary>
@@ -184,7 +219,7 @@ namespace ResxWriter
         }
 
         /// <summary>
-        /// Returns the file's <see cref="Encoding"/>.
+        /// Returns the file's <see cref="Encoding"/> using the <see cref="StreamReader"/>.
         /// </summary>
         public static Encoding DetermineFileEncoding(this string path, Encoding fallback)
         {
@@ -193,8 +228,8 @@ namespace ResxWriter
                 System.IO.FileStream fs = new System.IO.FileStream(path, System.IO.FileMode.Open);
                 System.IO.StreamReader sr = new System.IO.StreamReader(fs);
                 System.Text.Encoding coding = sr.CurrentEncoding;
-                fs.Close(); fs.Dispose();
                 sr.Close(); sr.Dispose();
+                fs.Close(); fs.Dispose();
                 return coding;
             }
             catch (Exception ex)
@@ -1951,7 +1986,6 @@ namespace ResxWriter
             shf.wFunc = FO_DELETE;
             shf.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT;
             shf.pFrom = path + "\0" + "\0";
-
             SHFileOperation(ref shf);
         }
     }

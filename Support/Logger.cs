@@ -176,12 +176,15 @@ namespace ResxWriter
                 default: break;
             }
 
-            using (var fileStream = new StreamWriter(File.OpenWrite(LogPath), System.Text.Encoding.UTF8))
+            if (!IsFileLocked(new FileInfo(filePath)))
             {
-                // Jump to the end of the file before writing (same as append).
-                fileStream.BaseStream.Seek(0, SeekOrigin.End);
-                // Write the text to the file (adds CRLF automatically).
-                fileStream.WriteLine(message);
+                using (var fileStream = new StreamWriter(File.OpenWrite(LogPath), System.Text.Encoding.UTF8))
+                {
+                    // Jump to the end of the file before writing (same as append).
+                    fileStream.BaseStream.Seek(0, SeekOrigin.End);
+                    // Write the text to the file (adds CRLF automatically).
+                    fileStream.WriteLine(message);
+                }
             }
         }
 
@@ -217,13 +220,43 @@ namespace ResxWriter
                 default: break;
             }
 
-            using (var fileStream = new StreamWriter(File.OpenWrite(LogPath), System.Text.Encoding.UTF8))
+            if (!IsFileLocked(new FileInfo(filePath)))
             {
-                // Jump to the end of the file before writing (same as append).
-                fileStream.BaseStream.Seek(0, SeekOrigin.End);
-                // Write the text to the file (adds CRLF automatically).
-                fileStream.WriteLine(message);
+                using (var fileStream = new StreamWriter(File.OpenWrite(LogPath), System.Text.Encoding.UTF8))
+                {
+                    // Jump to the end of the file before writing (same as append).
+                    fileStream.BaseStream.Seek(0, SeekOrigin.End);
+                    // Write the text to the file (adds CRLF automatically).
+                    fileStream.WriteLine(message);
+                }
             }
+        }
+
+        public static bool IsFileLocked(FileInfo file)
+        {
+            FileStream stream = null;
+            try
+            {
+                stream = file.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException)
+            {
+                //the file is unavailable because it is:
+                //still being written to
+                //or being processed by another thread 
+                //or does not exist (has already been processed)
+                return true;
+            }
+            finally
+            {
+                if (stream != null)
+                {
+                    stream.Close();
+                    stream = null;
+                }
+            }
+            //file is not locked   
+            return false;
         }
 
         /// <summary>
