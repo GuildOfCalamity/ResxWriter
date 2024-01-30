@@ -24,8 +24,12 @@ namespace ResxWriter
     public delegate void LoggingEventHandler(string message);
 
     /// <summary>
-    /// This is an event-based logger which can be used for the Console or FileIO.
+    /// This is an event-based logger which can be used for file I/O.
+    /// Console output can be used via the event-based methods.
     /// </summary>
+    /// <remarks>
+    /// The default output encoding is UTF-8.
+    /// </remarks>
     public class Logger
     {
         private static Logger _instance = null;
@@ -54,7 +58,6 @@ namespace ResxWriter
                     _instance = new Logger();
                     _date = DateTime.Now;
                 }
-
                 return _instance;
             }
         }
@@ -149,7 +152,7 @@ namespace ResxWriter
             if (!string.IsNullOrEmpty(message))
                 OnImportant?.Invoke(message);
         }
-        #endregion [Event-based Methods]
+        #endregion
 
         /// <summary>
         /// Core logging method with <see cref="System.IO.StreamWriter"/>. 
@@ -162,30 +165,8 @@ namespace ResxWriter
             // Format the message.
             message = $"[{DateTime.Now.ToString("MM/dd/yyyy hh:mm:ss.fff tt")} -> {System.IO.Path.GetFileName(filePath)} -> {origin}(line {lineNumber})] {message}";
 
-            // Fire any listening events.
-            switch (level)
-            {
-                case LogLevel.None: return;
-                case LogLevel.Debug: OnDebug?.Invoke(message); break;
-                case LogLevel.Verbose: OnVerbose?.Invoke(message); break;
-                case LogLevel.Info: OnInfo?.Invoke(message); break;
-                case LogLevel.Warning: OnWarning?.Invoke(message); break;
-                case LogLevel.Error: OnError?.Invoke(message); break;
-                case LogLevel.Success: OnSuccess?.Invoke(message); break;
-                case LogLevel.Important: OnImportant?.Invoke(message); break;
-                default: break;
-            }
-
-            if (!IsFileLocked(new FileInfo(filePath)))
-            {
-                using (var fileStream = new StreamWriter(File.OpenWrite(LogPath), System.Text.Encoding.UTF8))
-                {
-                    // Jump to the end of the file before writing (same as append).
-                    fileStream.BaseStream.Seek(0, SeekOrigin.End);
-                    // Write the text to the file (adds CRLF automatically).
-                    fileStream.WriteLine(message);
-                }
-            }
+            // Write to disk.
+            WriteToDisk(message, level);
         }
 
         /// <summary>
@@ -206,6 +187,15 @@ namespace ResxWriter
             // Format the message
             message = $"[{DateTime.Now.ToString("MM/dd/yyyy hh:mm:ss.fff tt")} -> {System.IO.Path.GetFileName(filePath)} -> {origin}(line {lineNumber})] {message}";
 
+            // Write to disk.
+            WriteToDisk(message, level);
+        }
+
+        /// <summary>
+        /// Consolidated write method for disk I/O.
+        /// </summary>
+        internal void WriteToDisk(string message, LogLevel level)
+        {
             // Fire any listening events.
             switch (level)
             {
@@ -220,43 +210,24 @@ namespace ResxWriter
                 default: break;
             }
 
-            if (!IsFileLocked(new FileInfo(filePath)))
+            // Write to disk if file is free.
+            if (!IsFileLocked(new FileInfo(LogPath)))
             {
-                using (var fileStream = new StreamWriter(File.OpenWrite(LogPath), System.Text.Encoding.UTF8))
+                try
                 {
-                    // Jump to the end of the file before writing (same as append).
-                    fileStream.BaseStream.Seek(0, SeekOrigin.End);
-                    // Write the text to the file (adds CRLF automatically).
-                    fileStream.WriteLine(message);
+                    using (var fileStream = new StreamWriter(File.OpenWrite(LogPath), System.Text.Encoding.UTF8))
+                    {
+                        // Jump to the end of the file before writing (same as append).
+                        fileStream.BaseStream.Seek(0, SeekOrigin.End);
+                        // Write the text to the file (adds CRLF automatically).
+                        fileStream.WriteLine(message);
+                    }
                 }
-            }
-        }
-
-        public static bool IsFileLocked(FileInfo file)
-        {
-            FileStream stream = null;
-            try
-            {
-                stream = file.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-            }
-            catch (IOException)
-            {
-                //the file is unavailable because it is:
-                //still being written to
-                //or being processed by another thread 
-                //or does not exist (has already been processed)
-                return true;
-            }
-            finally
-            {
-                if (stream != null)
+                catch (Exception ex)
                 {
-                    stream.Close();
-                    stream = null;
-                }
+                    System.Diagnostics.Debug.WriteLine($"[Logger] {ex.Message}");
+                }            
             }
-            //file is not locked   
-            return false;
         }
 
         /// <summary>
@@ -280,7 +251,113 @@ namespace ResxWriter
             }
         }
 
-        public FileInfo SetExtension(FileInfo fileInfo, string extension) => new FileInfo(Path.ChangeExtension(fileInfo.FullName, extension));
+        /// <summary>
+        /// Uses the <see cref="FileStream"/> to determine if a file is currently in use.
+        /// </summary>
+        /// <param name="file"><see cref="FileInfo"/></param>
+        /// <returns>true if locked, false otherwise</returns>
+        public static bool IsFileLocked(FileInfo file)
+        {
+            FileStream stream = null;
+            try
+            {
+                stream = file.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (FileNotFoundException)
+            {
+                return false;
+            }
+            catch (Exception)
+            {
+                return true;
+            }
+            finally
+            {
+                if (stream != null)
+                {
+                    stream.Close();
+                    stream = null;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Determine if a file/folder path exceed the maximum allowed.
+        /// </summary>
+        /// <param name="path">full path</param>
+        /// <returns>true if too long, false otherwise</returns>
+        public static bool IsPathTooLong(string path)
+        {
+            try
+            {
+                var tmp = Path.GetFullPath(path);
+                return false;
+            }
+            catch (UnauthorizedAccessException) { return false; }
+            catch (DirectoryNotFoundException) { return false; }
+            catch (PathTooLongException) { return true; }
+            catch (Exception) { return false; }
+        }
+
+        /// <summary>
+        /// Determines if a path is not a <see cref="System.IO.FileAttributes.ReparsePoint"/>
+        /// and <see cref="IsReadable(string)"/>.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns>true if valid, false otherwise</returns>
+        public static bool IsValidPath(string path)
+        {
+            if ((File.GetAttributes(path) & System.IO.FileAttributes.ReparsePoint) == System.IO.FileAttributes.ReparsePoint)
+            {
+                System.Diagnostics.Debug.WriteLine("'" + path + "' is a reparse point (skipped)");
+                return false;
+            }
+            if (!IsReadable(path))
+            {
+                System.Diagnostics.Debug.WriteLine("'" + path + "' *ACCESS DENIED* (skipped)");
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Attempts to get the directory name and the directories inside the given path.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns>true if readable, false otherwise</returns>
+        public static bool IsReadable(string path)
+        {
+            try
+            {
+                var dn = Path.GetDirectoryName(path);
+                if (string.IsNullOrEmpty(dn)) { return false; }
+                string[] test = Directory.GetDirectories(dn, "*.*", SearchOption.TopDirectoryOnly);
+            }
+            catch (UnauthorizedAccessException) { return false; }
+            catch (PathTooLongException) { return false; }
+            catch (IOException) { return false; }
+            return true;
+        }
+
+        public static bool FilePathHasInvalidChars(string path) => (!string.IsNullOrEmpty(path) && path.IndexOfAny(System.IO.Path.GetInvalidPathChars()) >= 0);
+        public static bool IsInvalidFileNameChar(Char c) => c < 64U ? (1UL << c & 0xD4008404FFFFFFFFUL) != 0 : c == '\\' || c == '|';
+        public static string RemoveInvalidCharacters(string path) => Path.GetInvalidFileNameChars().Aggregate(path, (current, c) => current.Replace(c.ToString(), string.Empty));
+        public static string SanitizeFilePath(string path)
+        {
+            if (!string.IsNullOrEmpty(path))
+            {
+                while (path.IndexOfAny(System.IO.Path.GetInvalidPathChars()) >= 0)
+                {
+                    int idx = path.IndexOfAny(System.IO.Path.GetInvalidPathChars());
+                    path = path.Remove(idx, 1).Insert(idx, string.Empty);
+                }
+                return path;
+            }
+            else
+                return path;
+        }
+
 
         /// <summary>
         /// Debug method (can be removed)

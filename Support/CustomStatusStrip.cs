@@ -26,6 +26,7 @@ namespace ResxWriter
         {
             BackColor = _background;
             ForeColor = _foreground;
+            ShowItemToolTips = true; // https://learn.microsoft.com/en-us/dotnet/desktop/winforms/controls/how-to-use-tooltips-in-toolstrip-controls?view=netframeworkdesktop-4.8#to-display-a-tooltip
         }
 
         /// <summary>

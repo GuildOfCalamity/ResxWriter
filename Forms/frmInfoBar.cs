@@ -6,16 +6,19 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace ResxWriter
 {
     /// <summary>
     /// A custom designer-less InfoBar replacement.
     /// </summary>
+    /// <remarks>
+    /// This dialog will automatically close after it is rendered.
+    /// </remarks>
     public partial class frmInfoBar : Form
     {
         #region [Props]
@@ -25,7 +28,7 @@ namespace ResxWriter
         FormBorderStyle borderStyle = FormBorderStyle.FixedToolWindow;
         Point iconLocus = new Point(16, 32);
         Size iconSize = new Size(48, 48);
-        static Size mainFormSize = new Size(540, 110);
+        static Size mainFormSize = new Size(550, 110);
         Padding withIconPadding = new Padding(65, 10, 20, 10);
         Padding withoutIconPadding = new Padding(15);
         Color clrForeText = Color.White;
@@ -53,6 +56,7 @@ namespace ResxWriter
         static extern bool ReleaseCapture();
         #endregion
 
+        #region [Modal Option]
         /// <summary>
         /// The main user method to show the custom message box.
         /// </summary>
@@ -67,10 +71,10 @@ namespace ResxWriter
                 customMessageBox.ShowDialog();
             }
         }
+        #endregion
 
         #region [Non-Modal Option]
         static frmInfoBar _infoBar;
-        static Form _owner;
         /// <summary>
         /// This proved to be trickier than expected, the built-in .Show() method does not seem to function 
         /// properly unless it is started in another thread. However, the call to .Show() still needs to reside 
@@ -79,7 +83,7 @@ namespace ResxWriter
         /// <param name="message"></param>
         /// <param name="title"></param>
         /// <param name="addIcon"></param>
-        /// <param name="autoClose"></param>
+        /// <param name="autoClose">If null is passed, the default <see cref="defaultTimeSpan"/> will be used.</param>
         /// <param name="owner"><see cref="IWin32Window"/></param>
         /// <remarks>
         /// The <see cref="IWin32Window"/> is NOT for the show method as expected, it is used for centering the 
@@ -87,39 +91,31 @@ namespace ResxWriter
         /// </remarks>
         public static void ShowNonModal(string message, string title, bool addIcon = false, TimeSpan? autoClose = null, Form owner = null)
         {
-            _owner = owner;
             _infoBar = new frmInfoBar(message, title, addIcon, autoClose);
             _infoBar.WindowState = FormWindowState.Normal;
+            _infoBar.ShowInTaskbar = false;
             _infoBar.Visible = true;
-            _infoBar.ShowInTaskbar = true;
             _infoBar.TopMost = true; // We don't want this being covered up if the user clicks the main window.
-            Thread t = new Thread(new ThreadStart(StartThread));
-            t.Start();
-        }
-
-        static void StartThread()
-        {
-            _infoBar.InvokeIfRequired(() =>
+            ThreadPool.QueueUserWorkItem((object o) =>
             {
-                try
+                _infoBar.InvokeIfRequired(() =>
                 {
-                    _infoBar.Show();
-                    if (_owner != null)
+                    try
                     {
-                        // We're wider than we are tall.
-                        var top = Math.Abs(_owner.Top + (_owner.Height / 2) - mainFormSize.Height);
-                        var left = Math.Abs(_owner.Left + (int)(_owner.Width / 1.35) - mainFormSize.Width);
-                        _infoBar.Top = top;
-                        _infoBar.Left = left;
+                        _infoBar.Show();
+                        if (owner != null)
+                        {   // Center the dialog based on the parent's and our own dimensions.
+                            _infoBar.Top = Math.Abs((owner.Height / 2) - (mainFormSize.Height / 2) + owner.Top);
+                            _infoBar.Left = Math.Abs((owner.Width / 2) - (mainFormSize.Width / 2) + owner.Left);
+                        }
+                        else
+                        {   // This does a respectable job of centering the dialog in single monitor use-cases.
+                            // It behaves more like "center screen" than "center parent", but that's acceptable in most cases.
+                            _infoBar.CenterToParent();
+                        }
                     }
-                    else
-                    {
-                        // This does a respectable job of centering the dialog in single monitor use-cases.
-                        // It behaves more like "center in screen" than "center in parent", but that's fine in most cases.
-                        _infoBar.CenterToParent();
-                    }
-                }
-                catch (Exception ex) { Debug.WriteLine($"[WARNING] StartThread: {ex.Message}"); }
+                    catch (Exception ex) { Debug.WriteLine($"[WARNING] StartThread: {ex.Message}"); }
+                });
             });
         }
         #endregion
@@ -131,10 +127,8 @@ namespace ResxWriter
         {
             //var fcoll = Application.OpenForms.OfType<Form>();
             //foreach (var frm in fcoll) { /* We'll only have one form open, the Main Form. */ }
-
             InitializeComponents(message, title, addIcon, autoClose);
         }
-
 
         /// <summary>
         /// Replaces the standard <see cref="InitializeComponent"/>.

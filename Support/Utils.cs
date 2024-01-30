@@ -111,6 +111,9 @@ namespace ResxWriter
         /// </code>
         /// </example>
         /// <returns>true if property exists, false otherwise</returns>
+        /// <remarks>
+        /// This is slower than accessing the property directly, but there may be scenarios where reflection is required.
+        /// </remarks>
         public static bool PropertyExists(this Control ctrl, string propName)
         {
             BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy;
@@ -132,6 +135,9 @@ namespace ResxWriter
         /// </code>
         /// </example>
         /// <returns><typeparamref name="T"/> value if found, default <typeparamref name="T"/> otherwise</returns>
+        /// <remarks>
+        /// This is slower than accessing the property directly, but there may be scenarios where reflection is required.
+        /// </remarks>
         public static T PropertyValue<T>(this Control ctrl, string propName)
         {
             BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy;
@@ -217,6 +223,9 @@ namespace ResxWriter
                     return fallback;
             }
         }
+
+        public static FileInfo SetExtension(this FileInfo fileInfo, string extension) => new FileInfo(Path.ChangeExtension(fileInfo.FullName, extension));
+        public static FileInfo SetDirectory(this FileInfo fileInfo, string directory) => new FileInfo(Path.Combine(directory, fileInfo.Name));
 
         /// <summary>
         /// Returns the file's <see cref="Encoding"/> using the <see cref="StreamReader"/>.

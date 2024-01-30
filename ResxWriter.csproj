@@ -132,6 +132,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="App_Icon.ico" />
+    <Content Include="Assets\App_Config.png" />
     <Content Include="Assets\App_Icon.ico" />
     <Content Include="Assets\App_Icon.png" />
     <Content Include="Assets\App_Settings.png" />
@@ -154,6 +155,7 @@
     <Content Include="Assets\SB_BlueOn.png" />
     <Content Include="Assets\SB_DotOff.png" />
     <Content Include="Assets\SB_DotOn.png" />
+    <Content Include="Assets\SB_Notes.png" />
     <Content Include="Assets\ScreenShot.png" />
     <None Include="README.md" />
     <Content Include="SampleData\de-DE.txt">

@@ -99,6 +99,9 @@ namespace ResxWriter
         void frmMain_Shown(object sender, EventArgs e)
         {
             #region [Setup Tool Strip Menu Items]
+            toolStripSplitButton1.ToolTipText = "Select an option";
+            toolStripSplitButton1.Image = ResxWriter.Properties.Resources.App_Settings;
+
             // The background color will not apply correctly, so we'll use this trick as a workaround.
             openLogToolStripMenuItem.BackgroundImage = ResxWriter.Properties.Resources.SB_Background;
             openLogToolStripMenuItem.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
@@ -1197,7 +1200,7 @@ namespace ResxWriter
                 var key = lv.SelectedItems[0].SubItems[0].Text;
                 var data = lv.SelectedItems[0].SubItems[1].Text;
                 Debug.WriteLine($"MouseClick({Control.MouseButtons}) => {data}");
-                if (e.Clicks == 2 && e.Button == System.Windows.Forms.MouseButtons.Left)
+                if (e.Clicks == 2 && e.Button == MouseButtons.Left)
                 {
                     #region [Using the question dialog]
                     var dr = frmQuestion.Show($"Run all encodings on \"{key}\" ?", "Debug", true);
@@ -1220,7 +1223,7 @@ namespace ResxWriter
                     }
                     #endregion
                 }
-                else if (IsRunningIDE && e.Clicks == 1 && e.Button == System.Windows.Forms.MouseButtons.Right)
+                else if (IsRunningIDE && e.Clicks == 1 && e.Button == MouseButtons.Right)
                 {
                     #region [Override the default style of the MenuItem]
                     //var item = new MenuItem() { Text = $"Test \"{key}\" against all encodings" };
@@ -1241,11 +1244,10 @@ namespace ResxWriter
                     //menu.Show(lv, pt2);
                     #endregion
 
-                    #region [Show the custom PopupMenu]
-                    var mp = lv.PointToClient(System.Windows.Forms.Cursor.Position);
+                    #region [Show the custom popup menu]
+                    var mp = lv.PointToClient(Cursor.Position);
                     _popupMenu.Show(this, new Point(mp.X + 32, mp.Y));
                     #endregion
-
                 }
             }
             catch (Exception ex)
@@ -1469,7 +1471,8 @@ namespace ResxWriter
         /// </summary>
         void toolStripSplitButton_Click(object sender, EventArgs e)
         {
-            Debug.WriteLine("[INFO] ToolStripSplitButton Clicked");
+            var tssb = sender as ToolStripSplitButton;
+            tssb?.ShowDropDown();
         }
 
         /// <summary>
@@ -1674,7 +1677,7 @@ namespace ResxWriter
         {
             stbStatus.InvokeIfRequired(() =>
             {
-                sbStatusPanel.Text = message;
+                sbStatusPanel.Text = sbStatusPanel.ToolTipText = message;
             });
         }
 
