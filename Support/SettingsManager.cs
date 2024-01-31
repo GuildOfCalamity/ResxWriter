@@ -17,6 +17,7 @@ namespace ResxWriter
         bool darkTheme = true;
         bool makeShortcut = true;
         bool runAnimation = false;
+        bool firstRun = true;
         string lastPath = "";
         string lastDelimiter = "";
         string language = "en-US";
@@ -129,6 +130,12 @@ namespace ResxWriter
         {
             get => AppSettings.runAnimation;
             set => AppSettings.runAnimation = value;
+        }
+
+        public static bool FirstRun
+        {
+            get => AppSettings.firstRun;
+            set => AppSettings.firstRun = value;
         }
 
         public static string LastPath

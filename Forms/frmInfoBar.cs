@@ -68,6 +68,7 @@ namespace ResxWriter
         {
             using (var customMessageBox = new frmInfoBar(message, title, addIcon, autoClose))
             {
+                //frmMain.GlobalEB.Publish("Message_UI", $"[InfoBar] Showing Modal");
                 customMessageBox.ShowDialog();
             }
         }
@@ -102,6 +103,7 @@ namespace ResxWriter
                 {
                     try
                     {
+                        //frmMain.GlobalEB.Publish("Message_UI", $"[InfoBar] Showing Non-Modal");
                         _infoBar.Show();
                         if (owner != null)
                         {   // Center the dialog based on the parent's and our own dimensions.
@@ -114,7 +116,10 @@ namespace ResxWriter
                             _infoBar.CenterToParent();
                         }
                     }
-                    catch (Exception ex) { Debug.WriteLine($"[WARNING] StartThread: {ex.Message}"); }
+                    catch (Exception ex) 
+                    { 
+                        frmMain.GlobalEB.Publish("Message_UI", $"[StartThread] {ex.Message}"); 
+                    }
                 });
             });
         }
@@ -231,8 +236,14 @@ namespace ResxWriter
             {
                 tmrClose.Stop();
                 tmrClose.Dispose();
-                try { this.Close(); }
-                catch (Exception) { }
+                try 
+                { 
+                    this.Close(); 
+                }
+                catch (Exception ex) 
+                { 
+                    frmMain.GlobalEB.Publish("Message_UI", $"[TimerOnTick] {ex.Message}"); 
+                }
             }
         }
     }

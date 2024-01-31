@@ -54,6 +54,12 @@ namespace ResxWriter
         string _codePage = "windows-1252";
         Dictionary<string, string> _glyphs = new Dictionary<string, string>();
         CustomPopupMenu _popupMenu;
+        static EventBus _eventBus = new EventBus();
+        public static EventBus GlobalEB 
+        {
+            get => _eventBus;
+        }
+
         public bool IsRunningIDE
         {
             get
@@ -98,6 +104,10 @@ namespace ResxWriter
         #region [Event Methods]
         void frmMain_Shown(object sender, EventArgs e)
         {
+            // Subscribe to some events.
+            if (!_eventBus.IsSubscribed("Message_UI"))
+                _eventBus.Subscribe("Message_UI", EventBusHandlerMethod);
+
             #region [Setup Tool Strip Menu Items]
             toolStripSplitButton1.ToolTipText = "Select an option";
             toolStripSplitButton1.Image = ResxWriter.Properties.Resources.App_Settings;
@@ -784,19 +794,23 @@ namespace ResxWriter
             #region [Test PopupMenu Control]
             _popupMenu = new CustomPopupMenu(new Dictionary<string, Image> 
             {
-                { "Sample item #1", Properties.Resources.MI_Selection},
-                { "Sample item #2", Properties.Resources.MI_Selection},
-                { "Sample item #3", Properties.Resources.MI_Selection},
-                { "Sample item #4", Properties.Resources.MI_Selection},
-                { "Sample item #5", Properties.Resources.MI_Selection},
-                { "Sample item #6", Properties.Resources.MI_Selection},
+                { "Sample item #1", Properties.Resources.MI_ArrowRight},
+                { "Sample item #2", Properties.Resources.MI_ArrowRight},
+                { "Sample item #3", Properties.Resources.MI_ArrowRight},
+                { "Sample item #4", Properties.Resources.MI_ArrowRight},
+                { "Sample item #5", Properties.Resources.MI_ArrowRight},
+                { "Sample item #6", Properties.Resources.MI_ArrowRight},
             }, _menuFont);
             _popupMenu.MenuItemClicked += CustomPopupMenu_MenuItemClicked;
             #endregion
 
             AcceptButton = btnImport;
 
-            frmInfoBar.ShowNonModal("Select a file and click [Import] to begin.", "Info", true, null, this);
+            if (SettingsManager.FirstRun)
+            {
+                SettingsManager.FirstRun = false;
+                frmInfoBar.ShowNonModal("Select a file and click [Import] to begin.", "Info", true, TimeSpan.FromSeconds(3), this);
+            }
         }
 
         /// <summary>
@@ -1134,6 +1148,7 @@ namespace ResxWriter
                 _closing = true;
                 _timer?.Stop();
                 _regMon?.Stop();
+                _eventBus.Unsubscribe("Message_UI", EventBusHandlerMethod);
 
                 if (this.WindowState == FormWindowState.Normal)
                 {
@@ -1211,6 +1226,10 @@ namespace ResxWriter
                         {
                             if (IsRunningIDE)
                             {
+                                // Using our Iterate() helper.
+                                //foreach (object i in idx.Iterate()) { UpdateStatusBar($"IndexCollection => {i}"); }
+
+                                // Using our ForEach() helper.
                                 idx.Cast<int>().ForEach(i => { TestAllEncodings(tbFilePath.Text, i + 1, true); });
                                 UpdateStatusBar($"All encodings applied to \"{key}\". See debug output window for results.");
                             }
@@ -1496,6 +1515,19 @@ namespace ResxWriter
             g.DrawLine(_pen, btnImport.Left + 2, btnImport.Top + 2, btnImport.Right - 2, btnImport.Bottom - 2);
             g.DrawLine(_pen, btnImport.Right - 2, btnImport.Top + 2, btnImport.Left + 2, btnImport.Bottom - 2);
         }
+
+        /// <summary>
+        /// For <see cref="EventBus"/> demonstration.
+        /// </summary>
+        void EventBusHandlerMethod(object sender, ObjectEventArgs e)
+        {
+            if (e.Payload == null)
+                UpdateStatusBar($"Received null object event!");
+            else if (e.Payload.GetType() == typeof(System.String))
+                UpdateStatusBar($"Received event bus message: {e.Payload}");
+            else
+                UpdateStatusBar($"Received event bus message of type: {e.Payload.GetType()}");
+        }
         #endregion
 
         #region [Helper Methods]
@@ -1677,7 +1709,7 @@ namespace ResxWriter
         {
             stbStatus.InvokeIfRequired(() =>
             {
-                sbStatusPanel.Text = sbStatusPanel.ToolTipText = message;
+                sbStatusPanel.Text = sbStatusPanel.ToolTipText = $"➜ {message}";
             });
         }
 

@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Windows.Forms;
 using System.Xml;
+using System.Collections;
 
 namespace ResxWriter
 {
@@ -889,7 +890,10 @@ namespace ResxWriter
         public static void ForEach<T>(this IEnumerable<T> ie, Action<T> action)
         {
             foreach (var i in ie)
-                action(i);
+            {
+                try { action(i); }
+                catch (Exception ex) { Debug.WriteLine($"[ERROR] ForEach: {ex.Message}"); }
+            }
         }
 
         /// <summary>
@@ -1836,6 +1840,42 @@ namespace ResxWriter
             catch (Win32Exception ex) //occurs when the user has clicked Cancel on the UAC prompt.
             {
                 Logger.Instance.Write($"[{ex.ErrorCode}]{ex.Message}", LogLevel.Error);
+            }
+        }
+        #endregion
+
+        #region [Index Collection]
+        /// <summary>
+        /// Helper for index collections.
+        /// </summary>
+        /// <remarks>
+        /// An IndexCollection typically inherits from IList, ICollection, and IEnumerable.
+        /// </remarks>
+        public static IEnumerable<T> Iterate<T>(this System.Windows.Forms.ListView.SelectedIndexCollection source)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            foreach (var i in source)
+            {
+                yield return (T)i;
+            }
+        }
+
+        /// <summary>
+        /// Helper for index collections.
+        /// </summary>
+        /// <remarks>
+        /// An IndexCollection typically inherits from IList, ICollection, and IEnumerable.
+        /// </remarks>
+        public static IEnumerable Iterate(this System.Windows.Forms.ListView.SelectedIndexCollection source)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            foreach (var i in source)
+            {
+                yield return i;
             }
         }
         #endregion

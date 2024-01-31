@@ -57,6 +57,7 @@
     <Compile Include="Support\CustomPopupMenu.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Support\EventBus.cs" />
     <Compile Include="Support\ImageComboBox.cs" />
     <Compile Include="Support\ImageComboBox.Designer.cs">
       <DependentUpon>ImageComboBox.cs</DependentUpon>
@@ -136,6 +137,10 @@
     <Content Include="Assets\App_Icon.ico" />
     <Content Include="Assets\App_Icon.png" />
     <Content Include="Assets\App_Settings.png" />
+    <Content Include="Assets\ArrowDown.png" />
+    <Content Include="Assets\ArrowLeft.png" />
+    <Content Include="Assets\ArrowRight.png" />
+    <Content Include="Assets\ArrowUp.png" />
     <Content Include="Assets\Button01.png" />
     <Content Include="Assets\Button02.png" />
     <Content Include="Assets\Button03.png" />
@@ -149,7 +154,6 @@
     <Content Include="Assets\MI_ArrowLeft.png" />
     <Content Include="Assets\MI_ArrowRight.png" />
     <Content Include="Assets\MI_ArrowUp.png" />
-    <Content Include="Assets\MI_Selection.png" />
     <Content Include="Assets\SB_Background.png" />
     <Content Include="Assets\SB_BlueOff.png" />
     <Content Include="Assets\SB_BlueOn.png" />
@@ -158,6 +162,8 @@
     <Content Include="Assets\SB_Notes.png" />
     <Content Include="Assets\ScreenShot.png" />
     <None Include="README.md" />
+    <Content Include="Assets\ScreenShot2.png" />
+    <Content Include="Assets\ScreenShot3.png" />
     <Content Include="SampleData\de-DE.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
