@@ -17,6 +17,7 @@ namespace ResxWriter
         bool darkTheme = true;
         bool makeShortcut = true;
         bool runAnimation = false;
+        bool devMode = false;
         bool firstRun = true;
         string lastPath = "";
         string lastDelimiter = "";
@@ -136,6 +137,12 @@ namespace ResxWriter
         {
             get => AppSettings.firstRun;
             set => AppSettings.firstRun = value;
+        }
+
+        public static bool DevMode
+        {
+            get => AppSettings.devMode;
+            set => AppSettings.devMode = value;
         }
 
         public static string LastPath

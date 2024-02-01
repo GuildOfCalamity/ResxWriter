@@ -54,6 +54,7 @@ namespace ResxWriter
         string _codePage = "windows-1252";
         Dictionary<string, string> _glyphs = new Dictionary<string, string>();
         CustomPopupMenu _popupMenu;
+        BounceButton _bounceButton;
         static EventBus _eventBus = new EventBus();
         public static EventBus GlobalEB 
         {
@@ -811,6 +812,61 @@ namespace ResxWriter
                 SettingsManager.FirstRun = false;
                 frmInfoBar.ShowNonModal("Select a file and click [Import] to begin.", "Info", true, TimeSpan.FromSeconds(3), this);
             }
+
+            #region [Grow/Shrink Button Test]
+            if (SettingsManager.DevMode)
+            {
+                _bounceButton = new BounceButton(new Font("Calibri", 12), 10, 1);
+                _bounceButton.ColorConfig(Color.FromArgb(40, 50, 110), Color.FromArgb(242, 242, 242), Color.FromArgb(80, 80, 90));
+                _bounceButton.Text = "Win32IProgressDialog";
+                _bounceButton.Anchor = AnchorStyles.Bottom;
+                _bounceButton.Size = new Size(180, 40);
+                _bounceButton.Location = new Point((this.Width / 2) - ((_bounceButton.Width / 2) + 10), this.Height - (int)(_bounceButton.Height * 3.4));
+                _bounceButton.ButtonClick += (s, e) =>
+                {
+                    UpdateStatusBar($"BounceButton Clicked");
+                    if (new Random().Next(0, 11) == 10)
+                        _bounceButton.Disable();
+
+                    #region [Win32IProgressDialog]
+                    uint progressPercent = 0;
+                    var pd = new NativeProgressDialog(this.Handle);
+                    pd.Title = "Performing Operation";
+                    pd.CancelMessage = "Please wait while the operation is cancelled";
+                    pd.Maximum = 100;
+                    pd.Value = 0;
+                    pd.Line1 = $"Analyzing some long file path here on line #1 for the dialog.";
+                    pd.Line3 = "Calculating time remaining...";
+                    System.Windows.Forms.Timer tmr = new System.Windows.Forms.Timer();
+                    tmr.Interval = 150;
+                    tmr.Tick += (ob, ea) =>
+                    {
+                        progressPercent++;
+                        if (pd.HasUserCancelled)
+                        {
+                            tmr.Stop();
+                            pd.CloseDialog();
+                        }
+                        else
+                        {
+                            pd.Value = progressPercent;
+                            pd.Line2 = "Percent " + progressPercent.ToString() + "%";
+                            if (progressPercent >= 100)
+                            {
+                                tmr.Stop();
+                                pd.CloseDialog();
+                            }
+                        }
+                    };
+
+                    //pd.ShowDialog(); // Defaults to PROGDLG.Normal
+                    pd.ShowDialog(NativeProgressDialog.PROGDLG.Modal, NativeProgressDialog.PROGDLG.AutoTime, NativeProgressDialog.PROGDLG.NoMinimize);
+                    tmr.Start();
+                    #endregion
+                };
+                this.Controls.Add(_bounceButton);
+            }
+            #endregion
         }
 
         /// <summary>
@@ -2017,16 +2073,30 @@ namespace ResxWriter
             }
         }
 
+        /// <summary>
+        /// Changes the taskbar application state to <see cref="TaskbarProgress.TaskbarStates.Indeterminate"/>.
+        /// </summary>
+        void AppIsBusy() => TaskbarProgress.SetState(this.Handle, TaskbarProgress.TaskbarStates.Indeterminate);
+
+        /// <summary>
+        /// Changes the taskbar application state to <see cref="TaskbarProgress.TaskbarStates.Normal"/>.
+        /// </summary>
+        void AppIsNotBusy() => TaskbarProgress.SetState(this.Handle, TaskbarProgress.TaskbarStates.Normal);
+
+        /// <summary>
+        /// Macro for using the <see cref="FileDeletion.DeleteVerbose(string)"/> method.
+        /// </summary>
+        /// <param name="filePath">full path to file</param>
         void SendToRecycleBin(string filePath)
         {
             if (File.Exists(filePath))
             {
-                FileDeletion.Delete(filePath);
-                UpdateStatusBar("File moved to Recyce Bin.");
+                int rez = FileDeletion.SendToRecycleBin(filePath);
+                UpdateStatusBar($"File moved to recyce bin ({rez})");
             }
             else
             {
-                UpdateStatusBar("File could not be located.");
+                UpdateStatusBar($"File could not be located ({filePath})");
             }
         }
         /// <summary>
